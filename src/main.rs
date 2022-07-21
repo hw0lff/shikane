@@ -14,7 +14,9 @@ struct ShikaneState {
     wlr_output_heads: Vec<ZwlrOutputHeadV1>,
 }
 
-impl Dispatch<wl_registry::WlRegistry, ()> for ShikaneState {
+type Data = ();
+
+impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneState {
     fn event(
         state: &mut Self,
         registry: &wl_registry::WlRegistry,
@@ -43,12 +45,12 @@ impl Dispatch<wl_registry::WlRegistry, ()> for ShikaneState {
     }
 }
 
-impl Dispatch<ZwlrOutputManagerV1, ()> for ShikaneState {
+impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneState {
     fn event(
         state: &mut Self,
         _proxy: &ZwlrOutputManagerV1,
         event: <ZwlrOutputManagerV1 as wayland_client::Proxy>::Event,
-        _data: &(),
+        _data: &Data,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
@@ -74,7 +76,7 @@ impl Dispatch<ZwlrOutputManagerV1, ()> for ShikaneState {
     ]);
 }
 
-impl Dispatch<ZwlrOutputHeadV1, ()> for ShikaneState {
+impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneState {
     fn event(
         _state: &mut Self,
         _proxy: &ZwlrOutputHeadV1,
@@ -104,12 +106,12 @@ impl Dispatch<ZwlrOutputModeV1, ()> for ShikaneState {
     }
 }
 
-impl Dispatch<ZwlrOutputConfigurationHeadV1, ()> for ShikaneState {
+impl Dispatch<ZwlrOutputConfigurationHeadV1, Data> for ShikaneState {
     fn event(
         _state: &mut Self,
         _proxy: &ZwlrOutputConfigurationHeadV1,
         event: <ZwlrOutputConfigurationHeadV1 as Proxy>::Event,
-        _data: &(),
+        _data: &Data,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
@@ -117,12 +119,12 @@ impl Dispatch<ZwlrOutputConfigurationHeadV1, ()> for ShikaneState {
     }
 }
 
-impl Dispatch<ZwlrOutputConfigurationV1, ()> for ShikaneState {
+impl Dispatch<ZwlrOutputConfigurationV1, Data> for ShikaneState {
     fn event(
         _state: &mut Self,
         _proxy: &ZwlrOutputConfigurationV1,
         event: <ZwlrOutputConfigurationV1 as Proxy>::Event,
-        _data: &(),
+        _data: &Data,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
