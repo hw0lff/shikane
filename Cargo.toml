@@ -1,0 +1,9 @@
+[package]
+name = "shikane"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+wayland-client = "0.30.0-beta.8"
+wayland-protocols = { version = "0.30.0-beta.8", features = ["client", "unstable"] }
+wayland-protocols-wlr = { version = "0.1.0-beta.8", features = ["client"] }
