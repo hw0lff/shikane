@@ -6,11 +6,13 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::Z
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
+use wayland_protocols_wlr::output_power_management::v1::client::zwlr_output_power_manager_v1::ZwlrOutputPowerManagerV1;
 
 #[derive(Default, Debug)]
 struct ShikaneState {
     done: bool,
     wlr_output_manager: Option<ZwlrOutputManagerV1>,
+    wlr_output_power_manager: Option<ZwlrOutputPowerManagerV1>,
     wlr_output_heads: Vec<ZwlrOutputHeadV1>,
 }
 
@@ -39,6 +41,13 @@ impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneState {
                     state.wlr_output_manager = Some(wlr_output_manager);
                     println!("[{}] {} (v{})", name, interface, version);
                 }
+                "zwlr_output_power_manager_v1" => {
+                    let wlr_output_power_manager = registry
+                        .bind::<ZwlrOutputPowerManagerV1, _, _>(name, version, qhandle, ())
+                        .unwrap();
+                    state.wlr_output_power_manager = Some(wlr_output_power_manager);
+                    println!("[{}] {} (v{})", name, interface, version);
+                }
                 _ => {}
             }
         }
@@ -49,7 +58,7 @@ impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneState {
     fn event(
         state: &mut Self,
         _proxy: &ZwlrOutputManagerV1,
-        event: <ZwlrOutputManagerV1 as wayland_client::Proxy>::Event,
+        event: <ZwlrOutputManagerV1 as Proxy>::Event,
         _data: &Data,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
@@ -129,6 +138,18 @@ impl Dispatch<ZwlrOutputConfigurationV1, Data> for ShikaneState {
         _qhandle: &QueueHandle<Self>,
     ) {
         dbg!(event);
+    }
+}
+
+impl Dispatch<ZwlrOutputPowerManagerV1, Data> for ShikaneState {
+    fn event(
+        _state: &mut Self,
+        _proxy: &ZwlrOutputPowerManagerV1,
+        _event: <ZwlrOutputPowerManagerV1 as Proxy>::Event,
+        _data: &Data,
+        _conn: &Connection,
+        _qhandle: &QueueHandle<Self>,
+    ) {
     }
 }
 
