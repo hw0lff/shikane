@@ -23,7 +23,7 @@ impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneState {
         state: &mut Self,
         registry: &wl_registry::WlRegistry,
         event: wl_registry::Event,
-        _: &(),
+        _: &Data,
         _: &Connection,
         qhandle: &QueueHandle<Self>,
     ) {
@@ -90,7 +90,7 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneState {
         _state: &mut Self,
         _proxy: &ZwlrOutputHeadV1,
         event: <ZwlrOutputHeadV1 as Proxy>::Event,
-        _data: &(),
+        _data: &Data,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
@@ -102,12 +102,12 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneState {
     ]);
 }
 
-impl Dispatch<ZwlrOutputModeV1, ()> for ShikaneState {
+impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneState {
     fn event(
         _state: &mut Self,
         _proxy: &ZwlrOutputModeV1,
         event: <ZwlrOutputModeV1 as Proxy>::Event,
-        _data: &(),
+        _data: &Data,
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
