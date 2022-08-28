@@ -139,11 +139,11 @@ impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneState {
     ) {
         match event {
             zwlr_output_manager_v1::Event::Head { head } => {
-                trace!("[OutputManager::Event::Head] head.id = {:?}", head.id());
+                trace!("[OutputManager::Event::Head] id: {:?}", head.id());
                 state.output_heads.insert(head.id(), OutputHead::default());
             }
             zwlr_output_manager_v1::Event::Done { serial } => {
-                trace!("[OutputManager::Event::Done] serial = {}", serial);
+                trace!("[OutputManager::Event::Done] serial: {}", serial);
                 state.output_manager_serial = serial;
                 state.done = true;
             }
@@ -180,25 +180,45 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneState {
 
         // Update the properties of a head
         match event {
-            ZwlrOutputHeadEvent::Name { name } => head.name = name,
-            ZwlrOutputHeadEvent::Description { description } => head.description = description,
+            ZwlrOutputHeadEvent::Name { name } => {
+                trace!("[OutputHead::Event::Name] {:?}", name);
+                head.name = name
+            }
+            ZwlrOutputHeadEvent::Description { description } => {
+                trace!("[OutputHead::Event::Description] {:?}", description);
+                head.description = description
+            }
             ZwlrOutputHeadEvent::PhysicalSize { width, height } => {
+                trace!(
+                    "[OutputHead::Event::PhysicalSize] width: {:?}, height: {:?}",
+                    width,
+                    height
+                );
                 (head.physical_width, head.physical_height) = (width, height)
             }
             ZwlrOutputHeadEvent::Mode { mode } => {
-                trace!("[OutputHead::Event::Mode] mode.id = {:?}", mode.id());
+                trace!("[OutputHead::Event::Mode] id: {:?}", mode.id());
                 state.mode_id_head_id.insert(mode.id(), proxy.id());
                 head.modes.push(mode.id());
             }
-            ZwlrOutputHeadEvent::Enabled { enabled } => head.enabled = !matches!(enabled, 0),
+            ZwlrOutputHeadEvent::Enabled { enabled } => {
+                trace!("[OutputHead::Event::Enabled]");
+                head.enabled = !matches!(enabled, 0)
+            }
             ZwlrOutputHeadEvent::CurrentMode { mode } => {
-                trace!("[OutputHead::Event::CurrentMode] mode.id = {:?}", mode.id());
+                trace!("[OutputHead::Event::CurrentMode] id: {:?}", mode.id());
                 head.current_mode = Some(mode.id())
             }
-            ZwlrOutputHeadEvent::Position { x, y } => (head.position_x, head.position_y) = (x, y),
+            ZwlrOutputHeadEvent::Position { x, y } => {
+                trace!("[OutputHead::Event::Position] x: {:?}, y: {:?}", x, y);
+                (head.position_x, head.position_y) = (x, y)
+            }
             ZwlrOutputHeadEvent::Transform { transform } => {
                 head.transform = match transform.into_result() {
-                    Ok(transform) => Some(transform),
+                    Ok(transform) => {
+                        trace!("[OutputHead::Event::Transform] {:?}", transform);
+                        Some(transform)
+                    }
                     Err(err) => {
                         warn!(
                         "[OutputHead::Event::Transform] The stored value does not match one defined by the protocol file: {:?}",
@@ -208,15 +228,24 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneState {
                     }
                 }
             }
-            ZwlrOutputHeadEvent::Scale { scale } => head.scale = scale,
-
+            ZwlrOutputHeadEvent::Scale { scale } => {
+                trace!("[OutputHead::Event::Scale] {:?}", scale);
+                head.scale = scale
+            }
             ZwlrOutputHeadEvent::Finished => {
+                trace!("[OutputHead::Event::Finished]");
                 state.output_heads.remove(&proxy.id());
             }
-            ZwlrOutputHeadEvent::Make { make } => head.make = make,
-            ZwlrOutputHeadEvent::Model { model } => head.model = model,
-
+            ZwlrOutputHeadEvent::Make { make } => {
+                trace!("[OutputHead::Event::Make] {:?}", make);
+                head.make = make
+            }
+            ZwlrOutputHeadEvent::Model { model } => {
+                trace!("[OutputHead::Event::Model] {:?}", model);
+                head.model = model
+            }
             ZwlrOutputHeadEvent::SerialNumber { serial_number } => {
+                trace!("[OutputHead::Event::SerialNumber] {:?}", serial_number);
                 head.serial_number = serial_number
             }
             _ => {
@@ -239,8 +268,6 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneState {
         _: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
-        trace!("[OutputMode::Event] {:?}", event);
-
         // Initialize the OutputMode and ensure it is in the HashMap
         let mut mode;
         match state.output_modes.get_mut(&proxy.id()) {
@@ -254,11 +281,20 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneState {
         // Update the properties of a mode
         match event {
             ZwlrOutputModeEvent::Size { width, height } => {
+                trace!(
+                    "[OutputMode::Event::Size] width: {:?}, height: {:?}",
+                    width,
+                    height
+                );
                 (mode.width, mode.height) = (width, height)
             }
-            ZwlrOutputModeEvent::Refresh { refresh } => mode.refresh = refresh,
+            ZwlrOutputModeEvent::Refresh { refresh } => {
+                trace!("[OutputMode::Event::Refresh] {:?}", refresh);
+                mode.refresh = refresh
+            }
             ZwlrOutputModeEvent::Preferred => {
                 // I'm not sure if the server can change the preferation of a mode.
+                trace!("[OutputMode::Event::Preferred]");
                 mode.preferred = true
             }
             ZwlrOutputModeEvent::Finished => match state.remove_mode(proxy.id()) {
