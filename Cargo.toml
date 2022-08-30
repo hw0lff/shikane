@@ -4,8 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+calloop = "0.10.1"
 env_logger = "0.9.0"
 log = "0.4.17"
+smithay-client-toolkit = { git = "https://github.com/Smithay/client-toolkit", rev = "32bb7a6521d621baf278dd0f3abb0618cb3d2234" }
 thiserror = "1.0.32"
 wayland-client = "0.30.0-beta.8"
 wayland-protocols = { version = "0.30.0-beta.8", features = ["client", "unstable"] }

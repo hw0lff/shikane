@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
+use smithay_client_toolkit::event_loop::WaylandSource;
 use wayland_client::backend::ObjectId;
-use wayland_client::event_created_child;
 use wayland_client::protocol::wl_output::Transform;
+use wayland_client::{event_created_child, DispatchError, EventQueue};
 use wayland_client::{protocol::wl_registry, Connection, Dispatch, Proxy, QueueHandle};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_head_v1::ZwlrOutputConfigurationHeadV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
@@ -68,6 +69,14 @@ pub(crate) struct OutputMode {
 pub(crate) struct Data;
 
 impl ShikaneBackend {
+    pub(crate) fn callback(
+        &mut self,
+        event_queue: &mut EventQueue<ShikaneBackend>,
+    ) -> Result<usize, DispatchError> {
+        let dispatch_result = event_queue.dispatch_pending(self);
+        trace!("[Dispatch::Result] {:?}", dispatch_result);
+        dispatch_result
+    }
     /// After received the Finished event for a ZwlrOutputModeV1 the mode must not be used anymore.
     /// This function removes all occurences of the provided ObjectId of the mode in ShikaneState.
     fn remove_mode(&mut self, id: ObjectId) -> Result<(), ShikaneError> {
@@ -332,4 +341,13 @@ impl Dispatch<ZwlrOutputConfigurationV1, Data> for ShikaneBackend {
     ) {
         trace!("[OutputConfiguration::Event] {:?}", event);
     }
+}
+
+pub(crate) fn connect() -> WaylandSource<ShikaneBackend> {
+    let conn = Connection::connect_to_env().unwrap();
+    let display = conn.display();
+    let event_queue = conn.new_event_queue();
+    let qh = event_queue.handle();
+    let _registry = display.get_registry(&qh, Data::default()).unwrap();
+    WaylandSource::new(event_queue).unwrap()
 }
