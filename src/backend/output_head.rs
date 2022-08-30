@@ -52,47 +52,47 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
         // Update the properties of a head
         match event {
             ZwlrOutputHeadEvent::Name { name } => {
-                trace!("[OutputHead::Event::Name] {:?}", name);
+                trace!("[Event::Name] {:?}", name);
                 head.name = name
             }
             ZwlrOutputHeadEvent::Description { description } => {
-                trace!("[OutputHead::Event::Description] {:?}", description);
+                trace!("[Event::Description] {:?}", description);
                 head.description = description
             }
             ZwlrOutputHeadEvent::PhysicalSize { width, height } => {
                 trace!(
-                    "[OutputHead::Event::PhysicalSize] width: {:?}, height: {:?}",
+                    "[Event::PhysicalSize] width: {:?}, height: {:?}",
                     width,
                     height
                 );
                 (head.physical_width, head.physical_height) = (width, height)
             }
             ZwlrOutputHeadEvent::Mode { mode } => {
-                trace!("[OutputHead::Event::Mode] id: {:?}", mode.id());
+                trace!("[Event::Mode] id: {:?}", mode.id());
                 state.mode_id_head_id.insert(mode.id(), proxy.id());
                 head.modes.push(mode.id());
             }
             ZwlrOutputHeadEvent::Enabled { enabled } => {
-                trace!("[OutputHead::Event::Enabled]");
+                trace!("[Event::Enabled]");
                 head.enabled = !matches!(enabled, 0)
             }
             ZwlrOutputHeadEvent::CurrentMode { mode } => {
-                trace!("[OutputHead::Event::CurrentMode] id: {:?}", mode.id());
+                trace!("[Event::CurrentMode] id: {:?}", mode.id());
                 head.current_mode = Some(mode.id())
             }
             ZwlrOutputHeadEvent::Position { x, y } => {
-                trace!("[OutputHead::Event::Position] x: {:?}, y: {:?}", x, y);
+                trace!("[Event::Position] x: {:?}, y: {:?}", x, y);
                 (head.position_x, head.position_y) = (x, y)
             }
             ZwlrOutputHeadEvent::Transform { transform } => {
                 head.transform = match transform.into_result() {
                     Ok(transform) => {
-                        trace!("[OutputHead::Event::Transform] {:?}", transform);
+                        trace!("[Event::Transform] {:?}", transform);
                         Some(transform)
                     }
                     Err(err) => {
                         warn!(
-                        "[OutputHead::Event::Transform] The stored value does not match one defined by the protocol file: {:?}",
+                        "[Event::Transform] The stored value does not match one defined by the protocol file: {:?}",
                         err
                     );
                         None
@@ -100,27 +100,27 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
                 }
             }
             ZwlrOutputHeadEvent::Scale { scale } => {
-                trace!("[OutputHead::Event::Scale] {:?}", scale);
+                trace!("[Event::Scale] {:?}", scale);
                 head.scale = scale
             }
             ZwlrOutputHeadEvent::Finished => {
-                trace!("[OutputHead::Event::Finished]");
+                trace!("[Event::Finished]");
                 state.output_heads.remove(&proxy.id());
             }
             ZwlrOutputHeadEvent::Make { make } => {
-                trace!("[OutputHead::Event::Make] {:?}", make);
+                trace!("[Event::Make] {:?}", make);
                 head.make = make
             }
             ZwlrOutputHeadEvent::Model { model } => {
-                trace!("[OutputHead::Event::Model] {:?}", model);
+                trace!("[Event::Model] {:?}", model);
                 head.model = model
             }
             ZwlrOutputHeadEvent::SerialNumber { serial_number } => {
-                trace!("[OutputHead::Event::SerialNumber] {:?}", serial_number);
+                trace!("[Event::SerialNumber] {:?}", serial_number);
                 head.serial_number = serial_number
             }
             _ => {
-                warn!("[OutputHead::Event] unknown event received {:?}", event)
+                warn!("[Event] unknown event received {:?}", event)
             }
         }
     }

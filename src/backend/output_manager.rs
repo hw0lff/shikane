@@ -21,18 +21,18 @@ impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneBackend {
     ) {
         match event {
             ZwlrOutputManagerEvent::Head { head } => {
-                trace!("[OutputManager::Event::Head] id: {:?}", head.id());
+                trace!("[Event::Head] id: {:?}", head.id());
                 state.output_heads.insert(head.id(), OutputHead::default());
             }
             ZwlrOutputManagerEvent::Done { serial } => {
-                trace!("[OutputManager::Event::Done] serial: {}", serial);
+                trace!("[Event::Done] serial: {}", serial);
                 state.output_manager_serial = serial;
                 state.done = true;
             }
             ZwlrOutputManagerEvent::Finished => {
-                trace!("[OutputManager::Event::Finished]")
+                trace!("[Event::Finished]")
             }
-            _ => warn!("[OutputManager::Event] unknown event received: {:?}", event),
+            _ => warn!("[Event] unknown event received: {:?}", event),
         }
     }
 

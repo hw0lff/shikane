@@ -15,6 +15,6 @@ impl Dispatch<ZwlrOutputConfigurationHeadV1, Data> for ShikaneBackend {
         _conn: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
-        trace!("[OutputConfigurationHead::Event] {:?}", event);
+        trace!("[Event] {:?}", event);
     }
 }

@@ -37,20 +37,16 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
         // Update the properties of a mode
         match event {
             ZwlrOutputModeEvent::Size { width, height } => {
-                trace!(
-                    "[OutputMode::Event::Size] width: {:?}, height: {:?}",
-                    width,
-                    height
-                );
+                trace!("[Event::Size] width: {:?}, height: {:?}", width, height);
                 (mode.width, mode.height) = (width, height)
             }
             ZwlrOutputModeEvent::Refresh { refresh } => {
-                trace!("[OutputMode::Event::Refresh] {:?}", refresh);
+                trace!("[Event::Refresh] {:?}", refresh);
                 mode.refresh = refresh
             }
             ZwlrOutputModeEvent::Preferred => {
                 // I'm not sure if the server can change the preferation of a mode.
-                trace!("[OutputMode::Event::Preferred]");
+                trace!("[Event::Preferred]");
                 mode.preferred = true
             }
             ZwlrOutputModeEvent::Finished => match state.remove_mode(proxy.id()) {
@@ -59,7 +55,7 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
                     error!("{:?}", err);
                 }
             },
-            _ => warn!("[OutputMode::Event] unknown event received: {:?}", event),
+            _ => warn!("[Event] unknown event received: {:?}", event),
         }
     }
 }
