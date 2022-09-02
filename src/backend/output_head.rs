@@ -129,3 +129,9 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
         3 => (ZwlrOutputModeV1, Data::default()),
     ]);
 }
+
+impl OutputHead {
+    pub(crate) fn matches(&self, pat: &str) -> bool {
+        self.name == pat || self.make == pat || self.model == pat
+    }
+}

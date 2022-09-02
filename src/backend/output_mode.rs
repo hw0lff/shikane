@@ -59,3 +59,28 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
         }
     }
 }
+
+impl OutputMode {
+    /// Returns [`true`] if the supplied parameters align with the parameters of the mode.
+    /// `width` and `height` are in pixel, `refresh` is in Hz.
+    pub(crate) fn matches(&self, width: i32, height: i32, refresh: i32) -> bool {
+        // | refresh - monitor.refresh | * 100
+        // ----------------------------------- < epsilon
+        //               refresh
+        self.width == width && self.height == height && {
+            const EPSILON: f32 = 1.0; // maximum relative difference in %
+            let refresh: i32 = refresh * 1000; // convert Hz to mHZ
+            trace!(
+                "refresh: {}mHz, monitor.refresh {}mHz",
+                refresh,
+                self.refresh
+            );
+            let diff: i32 = refresh.abs_diff(self.refresh) as i32; // difference in mHz
+
+            // times 100 to calculate in %
+            let p: f32 = (diff * 100) as f32 / refresh as f32; // relative difference in %
+            trace!("diff: {diff}mHz, ratio(diff,refresh): {p}%");
+            p < EPSILON
+        }
+    }
+}
