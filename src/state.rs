@@ -70,9 +70,7 @@ impl ShikaneState {
             let mode = self.backend.mode_from_id(mode_id);
 
             if output.enable {
-                let opch = opc
-                    .enable_head(&head, &self.backend.qh, self.backend.data)
-                    .expect("cannot enable head");
+                let opch = opc.enable_head(&head, &self.backend.qh, self.backend.data);
                 opch.set_mode(&mode);
                 opch.set_position(output.position.x, output.position.y);
             } else {

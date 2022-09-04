@@ -66,7 +66,6 @@ impl ShikaneBackend {
             .as_ref()
             .unwrap()
             .create_configuration(self.output_manager_serial, &self.qh, self.data)
-            .unwrap()
     }
 
     pub(crate) fn get_modes_of_head(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
@@ -137,7 +136,7 @@ impl ShikaneBackend {
             output_modes: Default::default(),
             mode_id_head_id: Default::default(),
         };
-        let _registry = display.get_registry(&backend.qh, backend.data).unwrap();
+        let _registry = display.get_registry(&backend.qh, backend.data);
 
         (backend, WaylandSource::new(event_queue).unwrap())
     }
