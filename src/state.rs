@@ -130,15 +130,20 @@ impl ShikaneState {
     }
 
     pub(crate) fn advance(&mut self, input: StateInput) {
-        trace!("previous state: {:?}, input: {:?}", self.state, input);
+        trace!("Previous state: {:?}, input: {:?}", self.state, input);
+        let next_state = self.match_input(input);
+        trace!("Next state: {:?}", next_state);
+        self.state = next_state;
+    }
 
+    fn match_input(&mut self, input: StateInput) -> State {
         match input {
             StateInput::OutputManagerDone => {}
             StateInput::OutputManagerFinished => {}
             StateInput::OutputConfigurationSucceeded => self.destroy_config(),
         };
 
-        let next_state = match (self.state, input) {
+        match (self.state, input) {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration
                 self.select_profile();
@@ -181,7 +186,7 @@ impl ShikaneState {
             (State::ShuttingDown, StateInput::OutputManagerFinished) => {
                 trace!("Stopping event loop");
                 self.loop_signal.stop();
-                return;
+                State::ShuttingDown
             }
             (_, StateInput::OutputManagerFinished) => {
                 error!(
@@ -190,11 +195,8 @@ impl ShikaneState {
                 );
                 trace!("Stopping event loop");
                 self.loop_signal.stop();
-                return;
+                State::ShuttingDown
             }
-        };
-
-        trace!("Next state: {:?}", next_state);
-        self.state = next_state;
+        }
     }
 }
