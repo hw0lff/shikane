@@ -35,6 +35,7 @@ pub(crate) enum StateInput {
     OutputManagerDone,
     OutputManagerFinished,
     OutputConfigurationSucceeded,
+    OutputConfigurationFailed,
 }
 
 impl ShikaneState {
@@ -146,6 +147,7 @@ impl ShikaneState {
             StateInput::OutputManagerDone => {}
             StateInput::OutputManagerFinished => {}
             StateInput::OutputConfigurationSucceeded => self.destroy_config(),
+            StateInput::OutputConfigurationFailed => self.destroy_config(),
         };
 
         match (self.state, input) {
@@ -173,6 +175,9 @@ impl ShikaneState {
 
                 State::ApplyingProfile
             }
+            (State::TestingProfile, StateInput::OutputConfigurationFailed) => {
+                self.select_next_profile_then_configure_and_test()
+            }
             (State::ApplyingProfile, StateInput::OutputManagerDone) => {
                 // OutputManager applied atomic changes to outputs
                 // Do nothing
@@ -184,6 +189,9 @@ impl ShikaneState {
                 self.backend.clean_up();
 
                 State::ShuttingDown
+            }
+            (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
+                self.select_next_profile_then_configure_and_test()
             }
             (State::ProfileApplied, StateInput::OutputManagerDone) => todo!(),
             (State::ProfileApplied, StateInput::OutputConfigurationSucceeded) => todo!(),
@@ -203,6 +211,7 @@ impl ShikaneState {
                 self.loop_signal.stop();
                 State::ShuttingDown
             }
+            (_, StateInput::OutputConfigurationFailed) => unreachable!(),
         }
     }
 }

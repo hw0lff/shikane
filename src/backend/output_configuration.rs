@@ -23,7 +23,9 @@ impl Dispatch<ZwlrOutputConfigurationV1, Data> for ShikaneBackend {
             OutputConfigurationEvent::Succeeded => {
                 state.send(StateInput::OutputConfigurationSucceeded);
             }
-            OutputConfigurationEvent::Failed => todo!(),
+            OutputConfigurationEvent::Failed => {
+                state.send(StateInput::OutputConfigurationFailed);
+            }
             OutputConfigurationEvent::Cancelled => todo!(),
             _ => warn!("[Event] unknown event received: {:?}", event),
         };
