@@ -169,8 +169,11 @@ impl ShikaneState {
                 self.select_next_profile_then_configure_and_test()
             }
             (State::TestingProfile, StateInput::OutputManagerDone) => {
-                // OutputManager applied atomic changes to outputs
-                // Do nothing or profile will be tested twice
+                // OutputManager applied atomic changes to outputs.
+                // If outdated information has been sent to the server
+                // we will get the Cancelled event.
+                //
+                // Do nothing
                 State::TestingProfile
             }
             (State::TestingProfile, StateInput::OutputConfigurationSucceeded) => {
@@ -191,7 +194,10 @@ impl ShikaneState {
                 self.select_next_profile_then_configure_and_test()
             }
             (State::ApplyingProfile, StateInput::OutputManagerDone) => {
-                // OutputManager applied atomic changes to outputs
+                // OutputManager applied atomic changes to outputs.
+                // If outdated information has been sent to the server
+                // we will get the Cancelled event.
+                //
                 // Do nothing
                 State::ApplyingProfile
             }
