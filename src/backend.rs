@@ -155,6 +155,18 @@ impl ShikaneBackend {
             .flush()
             .expect("cannot flush wayland connection")
     }
+
+    pub(crate) fn clean_up(&mut self) {
+        self.output_modes
+            .drain()
+            .for_each(|(id, _)| mode_from_id(&self.connection, id).release());
+        self.output_heads
+            .drain()
+            .for_each(|(id, _)| head_from_id(&self.connection, id).release());
+        if let Some(om) = &self.wlr_output_manager {
+            om.stop();
+        }
+    }
 }
 
 fn head_from_id(conn: &Connection, id: ObjectId) -> ZwlrOutputHeadV1 {
