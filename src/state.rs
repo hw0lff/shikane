@@ -119,8 +119,7 @@ impl ShikaneState {
             Some(profile) => trace!("Selected profile: {}", profile.name),
             None => {
                 warn!("No profiles matched the currently connected outputs");
-                self.backend.clean_up();
-                return State::ShuttingDown;
+                return State::NoProfileApplied;
             }
         }
         self.configure_selected_profile();
