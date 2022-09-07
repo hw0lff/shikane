@@ -35,6 +35,7 @@ impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneBackend {
                 trace!("[Event::Finished]");
                 state.wlr_output_manager = None;
                 state.output_manager_serial = 0;
+                state.send(StateInput::OutputManagerFinished);
             }
             _ => warn!("[Event] unknown event received: {:?}", event),
         }

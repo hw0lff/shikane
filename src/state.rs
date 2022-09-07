@@ -4,6 +4,7 @@ use crate::backend::ShikaneBackend;
 use crate::config::Profile;
 use crate::config::ShikaneConfig;
 
+use calloop::LoopSignal;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
@@ -12,6 +13,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configurat
 pub(crate) struct ShikaneState {
     pub(crate) backend: ShikaneBackend,
     pub(crate) config: ShikaneConfig,
+    loop_signal: LoopSignal,
     state: State,
     output_config: Option<ZwlrOutputConfigurationV1>,
     applied_profile: Option<Profile>,
@@ -24,19 +26,26 @@ enum State {
     TestingProfile,
     ApplyingProfile,
     ProfileApplied,
+    ShuttingDown,
 }
 
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum StateInput {
     OutputManagerDone,
+    OutputManagerFinished,
     OutputConfigurationSucceeded,
 }
 
 impl ShikaneState {
-    pub(crate) fn new(backend: ShikaneBackend, config: ShikaneConfig) -> Self {
+    pub(crate) fn new(
+        backend: ShikaneBackend,
+        config: ShikaneConfig,
+        loop_signal: LoopSignal,
+    ) -> Self {
         Self {
             backend,
             config,
+            loop_signal,
             state: State::StartingUp,
             output_config: None,
             applied_profile: None,
@@ -125,6 +134,7 @@ impl ShikaneState {
 
         match input {
             StateInput::OutputManagerDone => {}
+            StateInput::OutputManagerFinished => {}
             StateInput::OutputConfigurationSucceeded => self.destroy_config(),
         };
 
@@ -160,10 +170,28 @@ impl ShikaneState {
             (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
                 self.applied_profile = self.selected_profile.clone();
-                State::ProfileApplied
+                self.backend.clean_up();
+
+                State::ShuttingDown
             }
             (State::ProfileApplied, StateInput::OutputManagerDone) => todo!(),
             (State::ProfileApplied, StateInput::OutputConfigurationSucceeded) => todo!(),
+            (State::ShuttingDown, StateInput::OutputManagerDone) => unreachable!(),
+            (State::ShuttingDown, StateInput::OutputConfigurationSucceeded) => unreachable!(),
+            (State::ShuttingDown, StateInput::OutputManagerFinished) => {
+                trace!("Stopping event loop");
+                self.loop_signal.stop();
+                return;
+            }
+            (_, StateInput::OutputManagerFinished) => {
+                error!(
+                    "OutputManager has finished unexpectedly. State: {:?}",
+                    self.state
+                );
+                trace!("Stopping event loop");
+                self.loop_signal.stop();
+                return;
+            }
         };
 
         trace!("Next state: {:?}", next_state);
