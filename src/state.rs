@@ -37,6 +37,7 @@ pub(crate) enum StateInput {
     OutputManagerFinished,
     OutputConfigurationSucceeded,
     OutputConfigurationFailed,
+    OutputConfigurationCancelled,
 }
 
 impl ShikaneState {
@@ -158,6 +159,7 @@ impl ShikaneState {
             StateInput::OutputManagerFinished => {}
             StateInput::OutputConfigurationSucceeded => self.destroy_config(),
             StateInput::OutputConfigurationFailed => self.destroy_config(),
+            StateInput::OutputConfigurationCancelled => self.destroy_config(),
         };
 
         match (self.state, input) {
@@ -184,6 +186,10 @@ impl ShikaneState {
             (State::TestingProfile, StateInput::OutputConfigurationFailed) => {
                 self.select_next_profile_then_configure_and_test()
             }
+            (State::TestingProfile, StateInput::OutputConfigurationCancelled) => {
+                self.create_list_of_unchecked_profiles();
+                self.select_next_profile_then_configure_and_test()
+            }
             (State::ApplyingProfile, StateInput::OutputManagerDone) => {
                 // OutputManager applied atomic changes to outputs
                 // Do nothing
@@ -195,6 +201,10 @@ impl ShikaneState {
                 State::ProfileApplied
             }
             (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
+                self.select_next_profile_then_configure_and_test()
+            }
+            (State::ApplyingProfile, StateInput::OutputConfigurationCancelled) => {
+                self.create_list_of_unchecked_profiles();
                 self.select_next_profile_then_configure_and_test()
             }
             (State::ProfileApplied, StateInput::OutputManagerDone) => {
@@ -224,6 +234,7 @@ impl ShikaneState {
             }
             (_, StateInput::OutputConfigurationSucceeded) => unreachable!(),
             (_, StateInput::OutputConfigurationFailed) => unreachable!(),
+            (_, StateInput::OutputConfigurationCancelled) => unreachable!(),
         }
     }
 }
