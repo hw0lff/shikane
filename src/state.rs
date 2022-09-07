@@ -167,9 +167,9 @@ impl ShikaneState {
                 self.select_next_profile_then_configure_and_test()
             }
             (State::TestingProfile, StateInput::OutputManagerDone) => {
-                // OutputManager sent new information about current configuration
-                self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                // OutputManager applied atomic changes to outputs
+                // Do nothing or profile will be tested twice
+                State::TestingProfile
             }
             (State::TestingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
