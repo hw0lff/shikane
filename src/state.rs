@@ -15,6 +15,7 @@ pub(crate) struct ShikaneState {
     pub(crate) config: ShikaneConfig,
     loop_signal: LoopSignal,
     state: State,
+    list_of_unchecked_profiles: Vec<Profile>,
     output_config: Option<ZwlrOutputConfigurationV1>,
     applied_profile: Option<Profile>,
     selected_profile: Option<Profile>,
@@ -47,25 +48,10 @@ impl ShikaneState {
             config,
             loop_signal,
             state: State::StartingUp,
+            list_of_unchecked_profiles: Vec::new(),
             output_config: None,
             applied_profile: None,
             selected_profile: None,
-        }
-    }
-
-    fn select_profile(&mut self) {
-        self.selected_profile = self
-            .config
-            .profiles
-            .iter()
-            .find(|profile| self.match_profile(profile))
-            .cloned();
-
-        match &self.selected_profile {
-            Some(profile) => trace!("Selected profile: {}", profile.name),
-            None => {
-                warn!("No profile selected")
-            }
         }
     }
 
@@ -146,7 +132,23 @@ impl ShikaneState {
         match (self.state, input) {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration
-                self.select_profile();
+                self.list_of_unchecked_profiles = self
+                    .config
+                    .profiles
+                    .iter()
+                    .filter(|profile| self.match_profile(profile))
+                    .cloned()
+                    .collect();
+
+                self.selected_profile = self.list_of_unchecked_profiles.pop();
+                match &self.selected_profile {
+                    Some(profile) => trace!("Selected profile: {}", profile.name),
+                    None => {
+                        warn!("No profiles matched the currently connected outputs");
+                        self.backend.clean_up();
+                        return State::ShuttingDown;
+                    }
+                }
                 self.configure_selected_profile();
                 self.output_config
                     .as_ref()
