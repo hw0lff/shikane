@@ -193,9 +193,7 @@ impl ShikaneState {
             (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
                 self.applied_profile = self.selected_profile.clone();
-                self.backend.clean_up();
-
-                State::ShuttingDown
+                State::ProfileApplied
             }
             (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
                 self.select_next_profile_then_configure_and_test()
