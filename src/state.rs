@@ -131,6 +131,16 @@ impl ShikaneState {
         State::TestingProfile
     }
 
+    fn create_list_of_unchecked_profiles(&mut self) {
+        self.list_of_unchecked_profiles = self
+            .config
+            .profiles
+            .iter()
+            .filter(|profile| self.match_profile(profile))
+            .cloned()
+            .collect()
+    }
+
     pub(crate) fn idle(&mut self) {
         self.backend.flush();
     }
@@ -153,14 +163,7 @@ impl ShikaneState {
         match (self.state, input) {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration
-                self.list_of_unchecked_profiles = self
-                    .config
-                    .profiles
-                    .iter()
-                    .filter(|profile| self.match_profile(profile))
-                    .cloned()
-                    .collect();
-
+                self.create_list_of_unchecked_profiles();
                 self.select_next_profile_then_configure_and_test()
             }
             (State::StartingUp, StateInput::OutputConfigurationSucceeded) => todo!(),
