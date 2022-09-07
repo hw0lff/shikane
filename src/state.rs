@@ -111,6 +111,25 @@ impl ShikaneState {
         }
     }
 
+    fn select_next_profile_then_configure_and_test(&mut self) -> State {
+        self.selected_profile = self.list_of_unchecked_profiles.pop();
+        match &self.selected_profile {
+            Some(profile) => trace!("Selected profile: {}", profile.name),
+            None => {
+                warn!("No profiles matched the currently connected outputs");
+                self.backend.clean_up();
+                return State::ShuttingDown;
+            }
+        }
+        self.configure_selected_profile();
+        self.output_config
+            .as_ref()
+            .expect("No profile configured")
+            .test();
+
+        State::TestingProfile
+    }
+
     pub(crate) fn idle(&mut self) {
         self.backend.flush();
     }
@@ -140,22 +159,7 @@ impl ShikaneState {
                     .cloned()
                     .collect();
 
-                self.selected_profile = self.list_of_unchecked_profiles.pop();
-                match &self.selected_profile {
-                    Some(profile) => trace!("Selected profile: {}", profile.name),
-                    None => {
-                        warn!("No profiles matched the currently connected outputs");
-                        self.backend.clean_up();
-                        return State::ShuttingDown;
-                    }
-                }
-                self.configure_selected_profile();
-                self.output_config
-                    .as_ref()
-                    .expect("No profile configured")
-                    .test();
-
-                State::TestingProfile
+                self.select_next_profile_then_configure_and_test()
             }
             (State::StartingUp, StateInput::OutputConfigurationSucceeded) => todo!(),
             (State::TestingProfile, StateInput::OutputManagerDone) => todo!(),
