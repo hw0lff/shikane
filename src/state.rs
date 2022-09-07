@@ -200,7 +200,11 @@ impl ShikaneState {
             (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
                 self.select_next_profile_then_configure_and_test()
             }
-            (State::ProfileApplied, StateInput::OutputManagerDone) => todo!(),
+            (State::ProfileApplied, StateInput::OutputManagerDone) => {
+                // OutputManager sent new information about current configuration
+                self.create_list_of_unchecked_profiles();
+                self.select_next_profile_then_configure_and_test()
+            }
             (State::ProfileApplied, StateInput::OutputConfigurationSucceeded) => todo!(),
             (State::ShuttingDown, StateInput::OutputManagerDone) => unreachable!(),
             (State::ShuttingDown, StateInput::OutputConfigurationSucceeded) => unreachable!(),
