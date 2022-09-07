@@ -1,6 +1,6 @@
 use std::{fs, path::PathBuf};
 
-use log::debug;
+use log::{debug, trace};
 use serde::Deserialize;
 use xdg::BaseDirectories;
 
@@ -48,7 +48,8 @@ impl ShikaneConfig {
         };
         let s = fs::read_to_string(config_path).expect("cannot read config file");
         let config = toml::from_str(&s).expect("cannot parse config file");
-        debug!("config: {:#?}", config);
+        debug!("Config file parsed");
+        trace!("Config: {:#?}", config);
         config
     }
 }

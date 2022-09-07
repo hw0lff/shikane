@@ -1,3 +1,5 @@
+use crate::backend::StateInput;
+
 use super::output_head::OutputHead;
 use super::{Data, ShikaneBackend};
 
@@ -27,7 +29,7 @@ impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneBackend {
             ZwlrOutputManagerEvent::Done { serial } => {
                 trace!("[Event::Done] serial: {}", serial);
                 state.output_manager_serial = serial;
-                state.done = true;
+                state.send(StateInput::OutputManagerDone);
             }
             ZwlrOutputManagerEvent::Finished => {
                 trace!("[Event::Finished]");

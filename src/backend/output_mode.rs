@@ -49,12 +49,17 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
                 trace!("[Event::Preferred]");
                 mode.preferred = true
             }
-            ZwlrOutputModeEvent::Finished => match state.remove_mode(proxy.id()) {
-                Ok(_) => {}
-                Err(err) => {
-                    error!("{:?}", err);
+            ZwlrOutputModeEvent::Finished => {
+                trace!("[Event::Finished]");
+                proxy.release();
+
+                match state.remove_mode(proxy.id()) {
+                    Ok(_) => {}
+                    Err(err) => {
+                        error!("{:?}", err);
+                    }
                 }
-            },
+            }
             _ => warn!("[Event] unknown event received: {:?}", event),
         }
     }

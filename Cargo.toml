@@ -16,3 +16,12 @@ wayland-client = { version = "0.30.0-beta.9", features = ["log"] }
 wayland-protocols = { version = "0.30.0-beta.9", features = ["client", "unstable"] }
 wayland-protocols-wlr = { version = "0.1.0-beta.9", features = ["client"] }
 xdg = "2.4.1"
+
+[patch.crates-io]
+wayland-client =        { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
+wayland-protocols =     { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
+wayland-protocols-wlr = { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
+# dependencies
+wayland-backend =       { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
+wayland-cursor =        { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
+wayland-sys =           { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }

@@ -6,12 +6,14 @@ mod output_mode;
 mod wl_registry;
 
 use crate::config::Mode;
+use crate::state::StateInput;
 
 use self::output_head::OutputHead;
 use self::output_mode::OutputMode;
 
 use std::collections::HashMap;
 
+use calloop::channel::Sender;
 use smithay_client_toolkit::event_loop::WaylandSource;
 use wayland_client::{backend::ObjectId, Connection, Proxy, QueueHandle};
 use wayland_client::{DispatchError, EventQueue};
@@ -26,7 +28,6 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 
 #[derive(Debug)]
 pub(crate) struct ShikaneBackend {
-    pub(crate) done: bool,
     pub(crate) output_manager_serial: u32,
     pub(crate) wlr_output_manager: Option<ZwlrOutputManagerV1>,
     /// A Mapping from ZwlrOutputHeadV1-Ids to OutputHeads
@@ -40,6 +41,7 @@ pub(crate) struct ShikaneBackend {
     pub(crate) data: Data,
     pub(crate) connection: Connection,
     pub(crate) qh: QueueHandle<ShikaneBackend>,
+    sender: Sender<StateInput>,
 }
 
 #[derive(Error, Debug)]
@@ -59,6 +61,12 @@ impl ShikaneBackend {
         let dispatch_result = event_queue.dispatch_pending(self);
         trace!("[Dispatch::Result] {:?}", dispatch_result);
         dispatch_result
+    }
+
+    pub(crate) fn send(&mut self, event: StateInput) {
+        self.sender
+            .send(event)
+            .expect("cannot send input to state machine");
     }
 
     pub(crate) fn create_configuration(&mut self) -> ZwlrOutputConfigurationV1 {
@@ -92,11 +100,11 @@ impl ShikaneBackend {
     }
 
     pub(crate) fn mode_from_id(&self, id: ObjectId) -> ZwlrOutputModeV1 {
-        ZwlrOutputModeV1::from_id(&self.connection, id).expect("cannot retrieve mode from id")
+        mode_from_id(&self.connection, id)
     }
 
     pub(crate) fn head_from_id(&self, id: ObjectId) -> ZwlrOutputHeadV1 {
-        ZwlrOutputHeadV1::from_id(&self.connection, id).expect("cannot retrieve head from id")
+        head_from_id(&self.connection, id)
     }
 
     /// After received the Finished event for a ZwlrOutputModeV1 the mode must not be used anymore.
@@ -120,7 +128,7 @@ impl ShikaneBackend {
         Ok(())
     }
 
-    pub(crate) fn connect() -> (Self, WaylandSource<Self>) {
+    pub(crate) fn connect(sender: Sender<StateInput>) -> (Self, WaylandSource<Self>) {
         let connection = Connection::connect_to_env().unwrap();
         let display = connection.display();
         let event_queue = connection.new_event_queue();
@@ -129,22 +137,30 @@ impl ShikaneBackend {
             connection,
             qh,
             data: Default::default(),
-            done: Default::default(),
             output_manager_serial: Default::default(),
             wlr_output_manager: Default::default(),
             output_heads: Default::default(),
             output_modes: Default::default(),
             mode_id_head_id: Default::default(),
+            sender,
         };
         let _registry = display.get_registry(&backend.qh, backend.data);
 
         (backend, WaylandSource::new(event_queue).unwrap())
     }
 
-    pub(crate) fn refresh(&mut self) {
-        trace!("[IdleRefresh]");
+    pub(crate) fn flush(&mut self) {
+        trace!("[Flush]");
         self.connection
             .flush()
             .expect("cannot flush wayland connection")
     }
+}
+
+fn head_from_id(conn: &Connection, id: ObjectId) -> ZwlrOutputHeadV1 {
+    ZwlrOutputHeadV1::from_id(conn, id).expect("cannot retrieve head from id")
+}
+
+fn mode_from_id(conn: &Connection, id: ObjectId) -> ZwlrOutputModeV1 {
+    ZwlrOutputModeV1::from_id(conn, id).expect("cannot retrieve mode from id")
 }

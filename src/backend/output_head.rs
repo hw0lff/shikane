@@ -105,6 +105,7 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
             }
             ZwlrOutputHeadEvent::Finished => {
                 trace!("[Event::Finished]");
+                proxy.release();
                 state.output_heads.remove(&proxy.id());
             }
             ZwlrOutputHeadEvent::Make { make } => {

@@ -6,7 +6,7 @@ use backend::ShikaneBackend;
 use clap::Parser;
 use state::ShikaneState;
 
-use calloop::{ping::make_ping, EventLoop};
+use calloop::{channel, EventLoop};
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
@@ -21,25 +21,21 @@ fn main() {
     let config = ShikaneConfig::parse(args.config);
 
     let mut event_loop: EventLoop<ShikaneState> = EventLoop::try_new().unwrap();
-    let (backend, wl_source) = ShikaneBackend::connect();
+    let (sender, channel) = channel::channel();
+    let (backend, wl_source) = ShikaneBackend::connect(sender);
     let mut state = ShikaneState::new(backend, config);
     let el_handle = event_loop.handle();
-    let (ping, ping_source) = make_ping().unwrap();
 
     el_handle
-        .insert_source(ping_source, |_e, _b, state| state.configure())
-        .expect("failed to insert config applier");
+        .insert_source(channel, |event, _, state| match event {
+            channel::Event::Msg(m) => state.advance(m),
+            channel::Event::Closed => todo!(),
+        })
+        .expect("failed to insert state input source");
 
     el_handle
-        .insert_source(wl_source, move |_, event_queue, state| {
-            let callback_result = state.backend.callback(event_queue);
-
-            if !state.first_done && state.backend.done {
-                state.first_done = true;
-                trace!("[Backend] pinging Config");
-                ping.ping();
-            }
-            callback_result
+        .insert_source(wl_source, |_, event_queue, state| {
+            state.backend.callback(event_queue)
         })
         .expect("failed to insert wayland source");
 
