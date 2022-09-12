@@ -18,12 +18,12 @@ fn main() {
         .format_timestamp(None)
         .init();
     let args = ShikaneArgs::parse();
-    let config = ShikaneConfig::parse(args.config);
+    let config = ShikaneConfig::parse(args.config.clone());
 
     let mut event_loop: EventLoop<ShikaneState> = EventLoop::try_new().unwrap();
     let (sender, channel) = channel::channel();
     let (backend, wl_source) = ShikaneBackend::connect(sender);
-    let mut state = ShikaneState::new(backend, config, event_loop.get_signal());
+    let mut state = ShikaneState::new(args, backend, config, event_loop.get_signal());
     let el_handle = event_loop.handle();
 
     el_handle

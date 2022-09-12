@@ -1,5 +1,6 @@
 use std::ops::Not;
 
+use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::Profile;
 use crate::config::ShikaneConfig;
@@ -11,6 +12,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configurat
 
 #[derive(Debug)]
 pub(crate) struct ShikaneState {
+    pub(crate) args: ShikaneArgs,
     pub(crate) backend: ShikaneBackend,
     pub(crate) config: ShikaneConfig,
     loop_signal: LoopSignal,
@@ -42,11 +44,13 @@ pub(crate) enum StateInput {
 
 impl ShikaneState {
     pub(crate) fn new(
+        args: ShikaneArgs,
         backend: ShikaneBackend,
         config: ShikaneConfig,
         loop_signal: LoopSignal,
     ) -> Self {
         Self {
+            args,
             backend,
             config,
             loop_signal,
@@ -120,6 +124,10 @@ impl ShikaneState {
             Some(profile) => trace!("Selected profile: {}", profile.name),
             None => {
                 warn!("No profiles matched the currently connected outputs");
+                if self.args.oneshot {
+                    self.backend.clean_up();
+                    return State::ShuttingDown;
+                }
                 return State::NoProfileApplied;
             }
         }
@@ -204,6 +212,10 @@ impl ShikaneState {
             (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
                 self.applied_profile = self.selected_profile.clone();
+                if self.args.oneshot {
+                    self.backend.clean_up();
+                    return State::ShuttingDown;
+                }
                 State::ProfileApplied
             }
             (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
