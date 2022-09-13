@@ -132,6 +132,14 @@ impl ShikaneState {
             }
         }
         self.configure_selected_profile();
+        if self.args.skip_tests {
+            self.output_config
+                .as_ref()
+                .expect("No profile configured")
+                .apply();
+
+            return State::ApplyingProfile;
+        }
         self.output_config
             .as_ref()
             .expect("No profile configured")

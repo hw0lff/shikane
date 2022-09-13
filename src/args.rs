@@ -14,4 +14,8 @@ pub(crate) struct ShikaneArgs {
     /// if no profile was matched
     #[clap(short, long)]
     pub(crate) oneshot: bool,
+
+    /// Apply profiles untested
+    #[clap(short, long)]
+    pub(crate) skip_tests: bool,
 }
