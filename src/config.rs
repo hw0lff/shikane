@@ -27,6 +27,7 @@ pub(crate) struct Profile {
     pub(crate) name: String,
     #[serde(rename = "output")]
     pub(crate) outputs: Vec<Output>,
+    pub(crate) exec: Option<Vec<String>>,
 }
 #[derive(Default, Debug, Deserialize)]
 pub(crate) struct ShikaneConfig {

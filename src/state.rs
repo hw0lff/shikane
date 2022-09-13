@@ -224,6 +224,38 @@ impl ShikaneState {
                     self.backend.clean_up();
                     return State::ShuttingDown;
                 }
+
+                if let Some(profile) = &self.applied_profile {
+                    if let Some(exec) = &profile.exec {
+                        let exec = exec.clone();
+                        trace!("Starting command exec thread");
+                        std::thread::Builder::new()
+                            .name("command exec".into())
+                            .spawn(move || {
+                                exec.iter().for_each(|cmd| {
+                                    if !cmd.is_empty() {
+                                        trace!("[Exec] {:?}", cmd);
+                                        match std::process::Command::new("sh")
+                                            .arg("-c")
+                                            .arg(&cmd)
+                                            .output()
+                                        {
+                                            Ok(output) => {
+                                                if let Ok(stdout) = String::from_utf8(output.stdout)
+                                                {
+                                                    trace!("[ExecOutput] {:?}", stdout)
+                                                }
+                                            }
+
+                                            Err(_) => error!("failed to spawn command: {:?}", cmd),
+                                        }
+                                    }
+                                });
+                            })
+                            .expect("cannot spawn thread");
+                    }
+                }
+
                 State::ProfileApplied
             }
             (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
