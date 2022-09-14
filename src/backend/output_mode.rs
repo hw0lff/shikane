@@ -73,7 +73,7 @@ impl OutputMode {
         // ----------------------------------- < epsilon
         //               refresh
         self.width == width && self.height == height && {
-            const EPSILON: f32 = 1.0; // maximum relative difference in %
+            const EPSILON: f32 = 0.2; // maximum relative difference in %
             let refresh: i32 = refresh * 1000; // convert Hz to mHZ
             trace!(
                 "refresh: {}mHz, monitor.refresh {}mHz",
