@@ -476,7 +476,7 @@ dependencies = [
  "wayland-cursor",
  "wayland-protocols",
  "wayland-protocols-wlr",
- "wayland-scanner 0.30.0-beta.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wayland-scanner",
  "xkbcommon",
 ]
 
@@ -591,7 +591,7 @@ dependencies = [
  "nix",
  "thiserror",
  "wayland-backend",
- "wayland-scanner 0.30.0-beta.9 (git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb)",
+ "wayland-scanner",
 ]
 
 [[package]]
@@ -612,7 +612,7 @@ dependencies = [
  "bitflags",
  "wayland-backend",
  "wayland-client",
- "wayland-scanner 0.30.0-beta.9 (git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb)",
+ "wayland-scanner",
 ]
 
 [[package]]
@@ -624,19 +624,7 @@ dependencies = [
  "wayland-backend",
  "wayland-client",
  "wayland-protocols",
- "wayland-scanner 0.30.0-beta.9 (git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb)",
-]
-
-[[package]]
-name = "wayland-scanner"
-version = "0.30.0-beta.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f5f5b0892a8a2dcd51d65ec843cd9350d407eae476ebbf10ff35650f510f761"
-dependencies = [
- "proc-macro2",
- "quick-xml",
- "quote",
- "syn",
+ "wayland-scanner",
 ]
 
 [[package]]

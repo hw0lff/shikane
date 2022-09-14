@@ -25,3 +25,4 @@ wayland-protocols-wlr = { git = "https://github.com/Smithay/wayland-rs", rev = "
 wayland-backend =       { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
 wayland-cursor =        { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
 wayland-sys =           { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
+wayland-scanner =       { git = "https://github.com/Smithay/wayland-rs", rev = "9dfaf0d99d701c258ba082f79790495a7fb136eb" }
