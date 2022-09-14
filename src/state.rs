@@ -133,12 +133,7 @@ impl ShikaneState {
         }
         self.configure_selected_profile();
         if self.args.skip_tests {
-            self.output_config
-                .as_ref()
-                .expect("No profile configured")
-                .apply();
-
-            return State::ApplyingProfile;
+            return self.apply_configured_profile();
         }
         self.output_config
             .as_ref()
@@ -146,6 +141,15 @@ impl ShikaneState {
             .test();
 
         State::TestingProfile
+    }
+
+    fn apply_configured_profile(&mut self) -> State {
+        self.output_config
+            .as_ref()
+            .expect("No profile configured")
+            .apply();
+
+        State::ApplyingProfile
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
@@ -195,12 +199,7 @@ impl ShikaneState {
             (State::TestingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
                 self.configure_selected_profile();
-                self.output_config
-                    .as_ref()
-                    .expect("No profile configured")
-                    .apply();
-
-                State::ApplyingProfile
+                self.apply_configured_profile()
             }
             (State::TestingProfile, StateInput::OutputConfigurationFailed) => {
                 self.select_next_profile_then_configure_and_test()
