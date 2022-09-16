@@ -217,11 +217,6 @@ impl ShikaneState {
             (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
                 self.applied_profile = self.selected_profile.clone();
-                if self.args.oneshot {
-                    self.backend.clean_up();
-                    return State::ShuttingDown;
-                }
-
                 if let Some(profile) = &self.applied_profile {
                     if let Some(exec) = &profile.exec {
                         let exec = exec.clone();
@@ -251,6 +246,11 @@ impl ShikaneState {
                             })
                             .expect("cannot spawn thread");
                     }
+                }
+
+                if self.args.oneshot {
+                    self.backend.clean_up();
+                    return State::ShuttingDown;
                 }
 
                 State::ProfileApplied
