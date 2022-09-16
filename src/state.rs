@@ -1,5 +1,3 @@
-use std::ops::Not;
-
 use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::Profile;
@@ -74,16 +72,16 @@ impl ShikaneState {
             return false;
         }
 
-        let mut unmatched_heads: Vec<&_> = self.backend.output_heads.values().into_iter().collect();
-        // This code removes an `OutputHead` from `unmatched_heads` if it matches against the pattern in `output.r#match`
-        profile.outputs.iter().for_each(|output| {
-            unmatched_heads = unmatched_heads
-                .iter()
-                .filter_map(|head| head.matches(&output.r#match).not().then_some(*head))
-                .collect();
-        });
-        // If the list of unmatched heads is empty then all heads have been matched against the provided outputs
-        unmatched_heads.is_empty()
+        let mut matches: usize = 0;
+        'output_loop: for output in profile.outputs.iter() {
+            for head in self.backend.output_heads.values() {
+                if head.matches(&output.r#match) {
+                    matches += 1;
+                    continue 'output_loop;
+                }
+            }
+        }
+        self.backend.output_heads.len() == matches
     }
 
     fn configure_selected_profile(&mut self) {
