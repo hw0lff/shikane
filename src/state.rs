@@ -221,7 +221,7 @@ impl ShikaneState {
                     if let Some(exec) = &profile.exec {
                         let exec = exec.clone();
                         trace!("Starting command exec thread");
-                        std::thread::Builder::new()
+                        let handle = std::thread::Builder::new()
                             .name("command exec".into())
                             .spawn(move || {
                                 exec.iter().for_each(|cmd| {
@@ -245,6 +245,15 @@ impl ShikaneState {
                                 });
                             })
                             .expect("cannot spawn thread");
+
+                        if self.args.oneshot {
+                            match handle.join() {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    error!("[Exec] cannot join thread {:?}", err);
+                                }
+                            };
+                        }
                     }
                 }
 
