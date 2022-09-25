@@ -210,6 +210,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "io-lifetimes"
+version = "1.0.0-rc1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6f65dae1d3aa98e6877917ab4e6fdbfdfb00e95885ea7c4f4f29e3a5dfc08fdf"
+dependencies = [
+ "libc",
+ "windows-sys",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -460,7 +470,7 @@ checksum = "2fd0db749597d91ff862fd1d55ea87f7855a744a8425a64695b6fca237d1dad1"
 [[package]]
 name = "smithay-client-toolkit"
 version = "0.16.0"
-source = "git+https://github.com/Smithay/client-toolkit?rev=87424f2cd10d50422d81ee0444e92becb45d43c4#87424f2cd10d50422d81ee0444e92becb45d43c4"
+source = "git+https://github.com/Smithay/client-toolkit?rev=1cc11af8538040f46173bf021ac079c342ddeebb#1cc11af8538040f46173bf021ac079c342ddeebb"
 dependencies = [
  "bitflags",
  "calloop",
@@ -568,11 +578,13 @@ checksum = "9c8d87e72b64a3b4db28d11ce29237c246188f4f51057d65a7eab63b7987e423"
 
 [[package]]
 name = "wayland-backend"
-version = "0.1.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.1.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "30c089c872513a8dcc2b5cc26209d83f5ffab1841d8c7973edf2583620ebc018"
 dependencies = [
  "cc",
  "downcast-rs",
+ "io-lifetimes",
  "nix",
  "scoped-tls",
  "smallvec",
@@ -581,8 +593,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-client"
-version = "0.30.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.30.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd71253f97d86ac930fb296ba995e31c178f1be6a7026244c3b3f3811d5086be"
 dependencies = [
  "bitflags",
  "futures-channel",
@@ -596,8 +609,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-cursor"
-version = "0.30.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.30.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e39f4325f2ea5c1548cda2a6edabb74c68b072c9d6db7d7363cd9fe4994b124b"
 dependencies = [
  "nix",
  "wayland-client",
@@ -606,8 +620,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-protocols"
-version = "0.30.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.30.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60406a2fb43ff670ece4976cdd0537bbcd1e583b54c3cd9a1b61065e966df0a7"
 dependencies = [
  "bitflags",
  "wayland-backend",
@@ -617,8 +632,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-protocols-wlr"
-version = "0.1.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.1.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1cfe42e0cfcce47a421844ee82e49316cfab3ec6bcbb3a1076a0a2dd6c8d61e"
 dependencies = [
  "bitflags",
  "wayland-backend",
@@ -629,8 +645,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-scanner"
-version = "0.30.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.30.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1398566f240c3ef845bdfd310c8ee6ba800d4db695d007f23f2190eeedfff93"
 dependencies = [
  "proc-macro2",
  "quick-xml",
@@ -640,8 +657,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-sys"
-version = "0.30.0-beta.9"
-source = "git+https://github.com/Smithay/wayland-rs?rev=9dfaf0d99d701c258ba082f79790495a7fb136eb#9dfaf0d99d701c258ba082f79790495a7fb136eb"
+version = "0.30.0-beta.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bacc6b678c3350910e5ad6c057b7503666080952c4ece0a7e8958fd33937b1f5"
 dependencies = [
  "dlib",
  "log",
@@ -678,6 +696,49 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
+
+[[package]]
+name = "windows-sys"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ea04155a16a59f9eab786fe12a4a450e75cdb175f9e0d80da1e17db09f55b8d2"
+dependencies = [
+ "windows_aarch64_msvc",
+ "windows_i686_gnu",
+ "windows_i686_msvc",
+ "windows_x86_64_gnu",
+ "windows_x86_64_msvc",
+]
+
+[[package]]
+name = "windows_aarch64_msvc"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bb8c3fd39ade2d67e9874ac4f3db21f0d710bee00fe7cab16949ec184eeaa47"
+
+[[package]]
+name = "windows_i686_gnu"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "180e6ccf01daf4c426b846dfc66db1fc518f074baa793aa7d9b9aaeffad6a3b6"
+
+[[package]]
+name = "windows_i686_msvc"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2e7917148b2812d1eeafaeb22a97e4813dfa60a3f8f78ebe204bcc88f12f024"
+
+[[package]]
+name = "windows_x86_64_gnu"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4dcd171b8776c41b97521e5da127a2d86ad280114807d0b2ab1e462bc764d9e1"
+
+[[package]]
+name = "windows_x86_64_msvc"
+version = "0.36.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c811ca4a8c853ef420abd8592ba53ddbbac90410fab6903b3e79972a631f7680"
 
 [[package]]
 name = "xcursor"
