@@ -18,19 +18,20 @@ impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneBackend {
         if let wl_registry::Event::Global {
             name,
             interface,
-            version,
+            version: _,
         } = event
         {
             match &interface[..] {
                 "zwlr_output_manager_v1" => {
+                    const VERSION: u32 = 3;
                     let wlr_output_manager = registry.bind::<ZwlrOutputManagerV1, _, _>(
                         name,
-                        version,
+                        VERSION,
                         qhandle,
                         Data::default(),
                     );
                     state.wlr_output_manager = Some(wlr_output_manager);
-                    trace!("[WlRegistry::bind] [{}] {} (v{})", name, interface, version);
+                    trace!("[WlRegistry::bind] [{}] {} (v{})", name, interface, VERSION);
                 }
                 /*
                 "zwlr_output_power_manager_v1" => {
