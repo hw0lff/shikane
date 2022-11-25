@@ -21,28 +21,16 @@ impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneBackend {
             version: _,
         } = event
         {
-            match &interface[..] {
-                "zwlr_output_manager_v1" => {
-                    const VERSION: u32 = 3;
-                    let wlr_output_manager = registry.bind::<ZwlrOutputManagerV1, _, _>(
-                        name,
-                        VERSION,
-                        qhandle,
-                        Data::default(),
-                    );
-                    state.wlr_output_manager = Some(wlr_output_manager);
-                    trace!("[WlRegistry::bind] [{}] {} (v{})", name, interface, VERSION);
-                }
-                /*
-                "zwlr_output_power_manager_v1" => {
-                    let wlr_output_power_manager = registry
-                                .bind::<ZwlrOutputPowerManagerV1, _, _>(name, version, qhandle, ())
-                                .unwrap();
-                                                state.wlr_output_power_manager = Some(wlr_output_power_manager);
-                            trace!("[{}] {} (v{})", name, interface, version);
-                }
-                */
-                _ => {}
+            if let "zwlr_output_manager_v1" = &interface[..] {
+                const VERSION: u32 = 3;
+                let wlr_output_manager = registry.bind::<ZwlrOutputManagerV1, _, _>(
+                    name,
+                    VERSION,
+                    qhandle,
+                    Data::default(),
+                );
+                state.wlr_output_manager = Some(wlr_output_manager);
+                trace!("[WlRegistry::bind] [{}] {} (v{})", name, interface, VERSION);
             }
         }
     }
