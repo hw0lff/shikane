@@ -4,6 +4,8 @@ use log::{debug, trace};
 use serde::Deserialize;
 use xdg::BaseDirectories;
 
+use crate::error::ShikaneError;
+
 #[derive(Clone, Default, Debug, Deserialize)]
 pub(crate) struct Position {
     pub(crate) x: i32,
@@ -36,21 +38,18 @@ pub(crate) struct ShikaneConfig {
 }
 
 impl ShikaneConfig {
-    pub(crate) fn parse(config_path: Option<PathBuf>) -> ShikaneConfig {
+    pub(crate) fn parse(config_path: Option<PathBuf>) -> Result<ShikaneConfig, ShikaneError> {
         let config_path = match config_path {
             None => {
-                let xdg_dirs =
-                    BaseDirectories::with_prefix("shikane").expect("failed to get xdg directories");
-                xdg_dirs
-                    .place_config_file("config.toml")
-                    .expect("cannot create configuration directory")
+                let xdg_dirs = BaseDirectories::with_prefix("shikane")?;
+                xdg_dirs.place_config_file("config.toml")?
             }
             Some(path) => path,
         };
-        let s = fs::read_to_string(config_path).expect("cannot read config file");
-        let config = toml::from_str(&s).expect("cannot parse config file");
+        let s = fs::read_to_string(config_path)?;
+        let config = toml::from_str(&s)?;
         debug!("Config file parsed");
         trace!("Config: {:#?}", config);
-        config
+        Ok(config)
     }
 }

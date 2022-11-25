@@ -2,6 +2,7 @@ use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::Profile;
 use crate::config::ShikaneConfig;
+use crate::error::ShikaneError;
 
 use calloop::LoopSignal;
 #[allow(unused_imports)]
@@ -84,39 +85,46 @@ impl ShikaneState {
         self.backend.output_heads.len() == matches
     }
 
-    fn configure_selected_profile(&mut self) {
-        if let Some(profile) = &self.selected_profile {
-            let output_config = self.backend.create_configuration();
-            debug!("Configuring profile: {}", profile.name);
+    fn configure_selected_profile(&mut self) -> Result<(), ShikaneError> {
+        let profile = self
+            .selected_profile
+            .as_ref()
+            .ok_or(ShikaneError::ConfigurationError)?;
+        let output_config = self.backend.create_configuration();
+        debug!("Configuring profile: {}", profile.name);
 
-            profile.outputs.iter().for_each(|output| {
-                let (head_id, output_head) = self.backend.match_head(&output.r#match).unwrap();
-                trace!("Setting Head: {:?}", output_head.name);
-                let head = self.backend.head_from_id(head_id.clone());
+        for output in profile.outputs.iter() {
+            let (head_id, output_head) = self
+                .backend
+                .match_head(&output.r#match)
+                .ok_or(ShikaneError::ConfigurationError)?;
+            trace!("Setting Head: {:?}", output_head.name);
+            let head = self.backend.head_from_id(head_id.clone())?;
 
-                if output.enable {
-                    let opch =
-                        output_config.enable_head(&head, &self.backend.qh, self.backend.data);
-                    // Mode
-                    let (mode_id, output_mode) =
-                        self.backend.match_mode(head_id, &output.mode).unwrap();
-                    trace!("Setting Mode: {:?}", output_mode);
-                    let mode = self.backend.mode_from_id(mode_id);
-                    opch.set_mode(&mode);
+            if output.enable {
+                let opch = output_config.enable_head(&head, &self.backend.qh, self.backend.data);
+                // Mode
+                let (mode_id, output_mode) = self
+                    .backend
+                    .match_mode(head_id, &output.mode)
+                    .ok_or(ShikaneError::ConfigurationError)?;
+                trace!("Setting Mode: {:?}", output_mode);
+                let mode = self.backend.mode_from_id(mode_id)?;
+                opch.set_mode(&mode);
 
-                    // Position
-                    trace!("Setting position: {:?}", output.position);
-                    opch.set_position(output.position.x, output.position.y);
-                } else {
-                    output_config.disable_head(&head);
-                }
-            });
-
-            self.output_config = Some(output_config);
+                // Position
+                trace!("Setting position: {:?}", output.position);
+                opch.set_position(output.position.x, output.position.y);
+            } else {
+                output_config.disable_head(&head);
+            }
         }
+
+        self.output_config = Some(output_config);
+        Ok(())
     }
 
-    fn select_next_profile_then_configure_and_test(&mut self) -> State {
+    fn select_next_profile_then_configure_and_test(&mut self) -> Result<State, ShikaneError> {
         self.selected_profile = self.list_of_unchecked_profiles.pop();
         match &self.selected_profile {
             Some(profile) => trace!("Selected profile: {}", profile.name),
@@ -124,30 +132,30 @@ impl ShikaneState {
                 warn!("No profiles matched the currently connected outputs");
                 if self.args.oneshot {
                     self.backend.clean_up();
-                    return State::ShuttingDown;
+                    return Ok(State::ShuttingDown);
                 }
-                return State::NoProfileApplied;
+                return Ok(State::NoProfileApplied);
             }
         }
-        self.configure_selected_profile();
+        self.configure_selected_profile()?;
         if self.args.skip_tests {
             return self.apply_configured_profile();
         }
         self.output_config
             .as_ref()
-            .expect("No profile configured")
+            .ok_or(ShikaneError::ConfigurationError)? // "No profile configured"
             .test();
 
-        State::TestingProfile
+        Ok(State::TestingProfile)
     }
 
-    fn apply_configured_profile(&mut self) -> State {
+    fn apply_configured_profile(&mut self) -> Result<State, ShikaneError> {
         self.output_config
             .as_ref()
-            .expect("No profile configured")
+            .ok_or(ShikaneError::ConfigurationError)? // "No profile configured"
             .apply();
 
-        State::ApplyingProfile
+        Ok(State::ApplyingProfile)
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
@@ -160,18 +168,25 @@ impl ShikaneState {
             .collect()
     }
 
-    pub(crate) fn idle(&mut self) {
-        self.backend.flush();
+    pub(crate) fn idle(&mut self) -> Result<(), ShikaneError> {
+        self.backend.flush()
     }
 
     pub(crate) fn advance(&mut self, input: StateInput) {
         trace!("Previous state: {:?}, input: {:?}", self.state, input);
-        let next_state = self.match_input(input);
+        let next_state = match self.match_input(input) {
+            Ok(s) => s,
+            Err(err) => {
+                error!("{}", err);
+                self.backend.clean_up();
+                State::ShuttingDown
+            }
+        };
         trace!("Next state: {:?}", next_state);
         self.state = next_state;
     }
 
-    fn match_input(&mut self, input: StateInput) -> State {
+    fn match_input(&mut self, input: StateInput) -> Result<State, ShikaneError> {
         match input {
             StateInput::OutputManagerDone => {}
             StateInput::OutputManagerFinished => {}
@@ -192,11 +207,11 @@ impl ShikaneState {
                 // we will get the Cancelled event.
                 //
                 // Do nothing
-                State::TestingProfile
+                Ok(State::TestingProfile)
             }
             (State::TestingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
-                self.configure_selected_profile();
+                self.configure_selected_profile()?;
                 self.apply_configured_profile()
             }
             (State::TestingProfile, StateInput::OutputConfigurationFailed) => {
@@ -212,7 +227,7 @@ impl ShikaneState {
                 // we will get the Cancelled event.
                 //
                 // Do nothing
-                State::ApplyingProfile
+                Ok(State::ApplyingProfile)
             }
             (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
@@ -259,10 +274,10 @@ impl ShikaneState {
 
                 if self.args.oneshot {
                     self.backend.clean_up();
-                    return State::ShuttingDown;
+                    return Ok(State::ShuttingDown);
                 }
 
-                State::ProfileApplied
+                Ok(State::ProfileApplied)
             }
             (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
                 self.select_next_profile_then_configure_and_test()
@@ -285,7 +300,7 @@ impl ShikaneState {
             (State::ShuttingDown, StateInput::OutputManagerFinished) => {
                 trace!("Stopping event loop");
                 self.loop_signal.stop();
-                State::ShuttingDown
+                Ok(State::ShuttingDown)
             }
             (_, StateInput::OutputManagerFinished) => {
                 error!(
@@ -294,7 +309,7 @@ impl ShikaneState {
                 );
                 trace!("Stopping event loop");
                 self.loop_signal.stop();
-                State::ShuttingDown
+                Ok(State::ShuttingDown)
             }
             (_, StateInput::OutputConfigurationSucceeded) => unreachable!(),
             (_, StateInput::OutputConfigurationFailed) => unreachable!(),

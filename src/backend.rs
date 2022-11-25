@@ -6,6 +6,7 @@ mod output_mode;
 mod wl_registry;
 
 use crate::config::Mode;
+use crate::error::ShikaneError;
 use crate::state::StateInput;
 
 use self::output_head::OutputHead;
@@ -23,7 +24,6 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
-use thiserror::Error;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 
 #[derive(Debug)]
@@ -42,12 +42,6 @@ pub(crate) struct ShikaneBackend {
     pub(crate) connection: Connection,
     pub(crate) qh: QueueHandle<ShikaneBackend>,
     sender: Sender<StateInput>,
-}
-
-#[derive(Error, Debug)]
-enum ShikaneError {
-    #[error("Unable to release resources associated with destroyed mode")]
-    ReleaseOutputMode,
 }
 
 #[derive(Copy, Clone, Default, Debug)]
@@ -99,11 +93,11 @@ impl ShikaneBackend {
         self.output_heads.iter().find(|(_id, h)| h.matches(pat))
     }
 
-    pub(crate) fn mode_from_id(&self, id: ObjectId) -> ZwlrOutputModeV1 {
+    pub(crate) fn mode_from_id(&self, id: ObjectId) -> Result<ZwlrOutputModeV1, ShikaneError> {
         mode_from_id(&self.connection, id)
     }
 
-    pub(crate) fn head_from_id(&self, id: ObjectId) -> ZwlrOutputHeadV1 {
+    pub(crate) fn head_from_id(&self, id: ObjectId) -> Result<ZwlrOutputHeadV1, ShikaneError> {
         head_from_id(&self.connection, id)
     }
 
@@ -128,8 +122,10 @@ impl ShikaneBackend {
         Ok(())
     }
 
-    pub(crate) fn connect(sender: Sender<StateInput>) -> (Self, WaylandSource<Self>) {
-        let connection = Connection::connect_to_env().unwrap();
+    pub(crate) fn connect(
+        sender: Sender<StateInput>,
+    ) -> Result<(Self, WaylandSource<Self>), ShikaneError> {
+        let connection = Connection::connect_to_env()?;
         let display = connection.display();
         let event_queue = connection.new_event_queue();
         let qh = event_queue.handle();
@@ -146,33 +142,36 @@ impl ShikaneBackend {
         };
         let _registry = display.get_registry(&backend.qh, backend.data);
 
-        (backend, WaylandSource::new(event_queue).unwrap())
+        Ok((backend, WaylandSource::new(event_queue)?))
     }
 
-    pub(crate) fn flush(&mut self) {
-        trace!("[Flush]");
-        self.connection
-            .flush()
-            .expect("cannot flush wayland connection")
+    pub(crate) fn flush(&mut self) -> Result<(), ShikaneError> {
+        Ok(self.connection.flush()?)
     }
 
     pub(crate) fn clean_up(&mut self) {
-        self.output_modes
-            .drain()
-            .for_each(|(id, _)| mode_from_id(&self.connection, id).release());
-        self.output_heads
-            .drain()
-            .for_each(|(id, _)| head_from_id(&self.connection, id).release());
+        for (id, _) in self.output_modes.drain() {
+            match mode_from_id(&self.connection, id) {
+                Ok(it) => it.release(),
+                Err(err) => warn!("{}", err),
+            }
+        }
+        for (id, _) in self.output_heads.drain() {
+            match head_from_id(&self.connection, id) {
+                Ok(it) => it.release(),
+                Err(err) => warn!("{}", err),
+            }
+        }
         if let Some(om) = &self.wlr_output_manager {
             om.stop();
         }
     }
 }
 
-fn head_from_id(conn: &Connection, id: ObjectId) -> ZwlrOutputHeadV1 {
-    ZwlrOutputHeadV1::from_id(conn, id).expect("cannot retrieve head from id")
+fn head_from_id(conn: &Connection, id: ObjectId) -> Result<ZwlrOutputHeadV1, ShikaneError> {
+    Ok(ZwlrOutputHeadV1::from_id(conn, id)?)
 }
 
-fn mode_from_id(conn: &Connection, id: ObjectId) -> ZwlrOutputModeV1 {
-    ZwlrOutputModeV1::from_id(conn, id).expect("cannot retrieve mode from id")
+fn mode_from_id(conn: &Connection, id: ObjectId) -> Result<ZwlrOutputModeV1, ShikaneError> {
+    Ok(ZwlrOutputModeV1::from_id(conn, id)?)
 }
