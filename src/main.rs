@@ -44,13 +44,17 @@ fn run() -> Result<(), ShikaneError> {
         state.backend.callback(event_queue)
     })?;
 
+    let el_signal = event_loop.get_signal();
     // Idle timeout callback
     event_loop.run(
         std::time::Duration::from_millis(500),
         &mut state,
         |state| match state.idle() {
             Ok(_) => {}
-            Err(err) => error!("{}", err),
+            Err(err) => {
+                error!("{}", err);
+                el_signal.stop();
+            }
         },
     )?;
     Ok(())
