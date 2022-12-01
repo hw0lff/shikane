@@ -10,10 +10,10 @@ use log::{debug, error, info, trace, warn};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
 
 #[derive(Debug)]
-pub(crate) struct ShikaneState {
-    pub(crate) args: ShikaneArgs,
-    pub(crate) backend: ShikaneBackend,
-    pub(crate) config: ShikaneConfig,
+pub struct ShikaneState {
+    pub args: ShikaneArgs,
+    pub backend: ShikaneBackend,
+    pub config: ShikaneConfig,
     loop_signal: LoopSignal,
     state: State,
     list_of_unchecked_profiles: Vec<Profile>,
@@ -33,7 +33,7 @@ enum State {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub(crate) enum StateInput {
+pub enum StateInput {
     OutputManagerDone,
     OutputManagerFinished,
     OutputConfigurationSucceeded,
@@ -42,7 +42,7 @@ pub(crate) enum StateInput {
 }
 
 impl ShikaneState {
-    pub(crate) fn new(
+    pub fn new(
         args: ShikaneArgs,
         backend: ShikaneBackend,
         config: ShikaneConfig,
@@ -168,11 +168,11 @@ impl ShikaneState {
             .collect()
     }
 
-    pub(crate) fn idle(&mut self) -> Result<(), ShikaneError> {
+    pub fn idle(&mut self) -> Result<(), ShikaneError> {
         self.backend.flush()
     }
 
-    pub(crate) fn advance(&mut self, input: StateInput) {
+    pub fn advance(&mut self, input: StateInput) {
         trace!("Previous state: {:?}, input: {:?}", self.state, input);
         let next_state = match self.match_input(input) {
             Ok(s) => s,

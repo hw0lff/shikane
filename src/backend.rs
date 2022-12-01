@@ -27,28 +27,28 @@ use log::{debug, error, info, trace, warn};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 
 #[derive(Debug)]
-pub(crate) struct ShikaneBackend {
-    pub(crate) output_manager_serial: u32,
-    pub(crate) wlr_output_manager: Option<ZwlrOutputManagerV1>,
+pub struct ShikaneBackend {
+    pub output_manager_serial: u32,
+    pub wlr_output_manager: Option<ZwlrOutputManagerV1>,
     /// A Mapping from ZwlrOutputHeadV1-Ids to OutputHeads
-    pub(crate) output_heads: HashMap<ObjectId, OutputHead>,
+    pub output_heads: HashMap<ObjectId, OutputHead>,
     /// A Mapping from ZwlrOutputModeV1-Ids to OutputModes
-    pub(crate) output_modes: HashMap<ObjectId, OutputMode>,
+    pub output_modes: HashMap<ObjectId, OutputMode>,
     /// A Mapping from ZwlrOutputModeV1-Ids to ZwlrOutputHeadV1-Ids
     ///
     /// The ZwlrOutputModeV1 from the key-field belongs to the ZwlrOutputHeadV1 in the value-field
-    pub(crate) mode_id_head_id: HashMap<ObjectId, ObjectId>,
-    pub(crate) data: Data,
-    pub(crate) connection: Connection,
-    pub(crate) qh: QueueHandle<ShikaneBackend>,
+    pub mode_id_head_id: HashMap<ObjectId, ObjectId>,
+    pub data: Data,
+    pub connection: Connection,
+    pub qh: QueueHandle<ShikaneBackend>,
     sender: Sender<StateInput>,
 }
 
 #[derive(Copy, Clone, Default, Debug)]
-pub(crate) struct Data;
+pub struct Data;
 
 impl ShikaneBackend {
-    pub(crate) fn callback(
+    pub fn callback(
         &mut self,
         event_queue: &mut EventQueue<ShikaneBackend>,
     ) -> Result<usize, DispatchError> {
@@ -57,20 +57,20 @@ impl ShikaneBackend {
         dispatch_result
     }
 
-    pub(crate) fn send(&mut self, event: StateInput) {
+    pub fn send(&mut self, event: StateInput) {
         self.sender
             .send(event)
             .expect("cannot send input to state machine");
     }
 
-    pub(crate) fn create_configuration(&mut self) -> ZwlrOutputConfigurationV1 {
+    pub fn create_configuration(&mut self) -> ZwlrOutputConfigurationV1 {
         self.wlr_output_manager
             .as_ref()
             .unwrap()
             .create_configuration(self.output_manager_serial, &self.qh, self.data)
     }
 
-    pub(crate) fn get_modes_of_head(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
+    pub fn get_modes_of_head(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
         let head = &self.output_heads[id];
 
         head.modes
@@ -83,21 +83,21 @@ impl ShikaneBackend {
             .collect()
     }
 
-    pub(crate) fn match_mode(&self, id: &ObjectId, mode: &Mode) -> Option<(ObjectId, &OutputMode)> {
+    pub fn match_mode(&self, id: &ObjectId, mode: &Mode) -> Option<(ObjectId, &OutputMode)> {
         self.get_modes_of_head(id)
             .into_iter()
             .find(|(_id, output_mode)| output_mode.matches(mode.width, mode.height, mode.refresh))
     }
 
-    pub(crate) fn match_head(&self, pat: &str) -> Option<(&ObjectId, &OutputHead)> {
+    pub fn match_head(&self, pat: &str) -> Option<(&ObjectId, &OutputHead)> {
         self.output_heads.iter().find(|(_id, h)| h.matches(pat))
     }
 
-    pub(crate) fn mode_from_id(&self, id: ObjectId) -> Result<ZwlrOutputModeV1, ShikaneError> {
+    pub fn mode_from_id(&self, id: ObjectId) -> Result<ZwlrOutputModeV1, ShikaneError> {
         mode_from_id(&self.connection, id)
     }
 
-    pub(crate) fn head_from_id(&self, id: ObjectId) -> Result<ZwlrOutputHeadV1, ShikaneError> {
+    pub fn head_from_id(&self, id: ObjectId) -> Result<ZwlrOutputHeadV1, ShikaneError> {
         head_from_id(&self.connection, id)
     }
 
@@ -122,7 +122,7 @@ impl ShikaneBackend {
         Ok(())
     }
 
-    pub(crate) fn connect(
+    pub fn connect(
         sender: Sender<StateInput>,
     ) -> Result<(Self, WaylandSource<Self>), ShikaneError> {
         let connection = Connection::connect_to_env()?;
@@ -145,11 +145,11 @@ impl ShikaneBackend {
         Ok((backend, WaylandSource::new(event_queue)?))
     }
 
-    pub(crate) fn flush(&mut self) -> Result<(), ShikaneError> {
+    pub fn flush(&mut self) -> Result<(), ShikaneError> {
         Ok(self.connection.flush()?)
     }
 
-    pub(crate) fn clean_up(&mut self) {
+    pub fn clean_up(&mut self) {
         for (id, _) in self.output_modes.drain() {
             match mode_from_id(&self.connection, id) {
                 Ok(it) => it.release(),

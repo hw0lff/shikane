@@ -8,11 +8,11 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 use log::{debug, error, info, trace, warn};
 
 #[derive(Default, Debug)]
-pub(crate) struct OutputMode {
-    pub(crate) width: i32,
-    pub(crate) height: i32,
-    pub(crate) refresh: i32,
-    pub(crate) preferred: bool,
+pub struct OutputMode {
+    pub width: i32,
+    pub height: i32,
+    pub refresh: i32,
+    pub preferred: bool,
 }
 
 impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
@@ -68,7 +68,7 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
 impl OutputMode {
     /// Returns [`true`] if the supplied parameters align with the parameters of the mode.
     /// `width` and `height` are in pixel, `refresh` is in Hz.
-    pub(crate) fn matches(&self, width: i32, height: i32, refresh: i32) -> bool {
+    pub fn matches(&self, width: i32, height: i32, refresh: i32) -> bool {
         // | refresh - monitor.refresh | * 100
         // ----------------------------------- < epsilon
         //               refresh

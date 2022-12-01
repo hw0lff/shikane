@@ -7,38 +7,38 @@ use xdg::BaseDirectories;
 use crate::error::ShikaneError;
 
 #[derive(Clone, Default, Debug, Deserialize)]
-pub(crate) struct Position {
-    pub(crate) x: i32,
-    pub(crate) y: i32,
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
 }
 #[derive(Clone, Default, Debug, Deserialize)]
-pub(crate) struct Mode {
-    pub(crate) width: i32,
-    pub(crate) height: i32,
-    pub(crate) refresh: i32,
+pub struct Mode {
+    pub width: i32,
+    pub height: i32,
+    pub refresh: i32,
 }
 #[derive(Clone, Default, Debug, Deserialize)]
-pub(crate) struct Output {
-    pub(crate) enable: bool,
-    pub(crate) r#match: String,
-    pub(crate) mode: Mode,
-    pub(crate) position: Position,
+pub struct Output {
+    pub enable: bool,
+    pub r#match: String,
+    pub mode: Mode,
+    pub position: Position,
 }
 #[derive(Clone, Default, Debug, Deserialize)]
-pub(crate) struct Profile {
-    pub(crate) name: String,
+pub struct Profile {
+    pub name: String,
     #[serde(rename = "output")]
-    pub(crate) outputs: Vec<Output>,
-    pub(crate) exec: Option<Vec<String>>,
+    pub outputs: Vec<Output>,
+    pub exec: Option<Vec<String>>,
 }
 #[derive(Default, Debug, Deserialize)]
-pub(crate) struct ShikaneConfig {
+pub struct ShikaneConfig {
     #[serde(rename = "profile")]
-    pub(crate) profiles: Vec<Profile>,
+    pub profiles: Vec<Profile>,
 }
 
 impl ShikaneConfig {
-    pub(crate) fn parse(config_path: Option<PathBuf>) -> Result<ShikaneConfig, ShikaneError> {
+    pub fn parse(config_path: Option<PathBuf>) -> Result<ShikaneConfig, ShikaneError> {
         let config_path = match config_path {
             None => {
                 let xdg_dirs = BaseDirectories::with_prefix("shikane")?;

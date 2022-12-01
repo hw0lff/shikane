@@ -13,21 +13,21 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 use log::{debug, error, info, trace, warn};
 
 #[derive(Default, Debug)]
-pub(crate) struct OutputHead {
-    pub(crate) name: String,
-    pub(crate) description: String,
-    pub(crate) physical_width: i32,
-    pub(crate) physical_height: i32,
-    pub(crate) modes: Vec<ObjectId>,
-    pub(crate) enabled: bool,
-    pub(crate) current_mode: Option<ObjectId>,
-    pub(crate) position_x: i32,
-    pub(crate) position_y: i32,
-    pub(crate) transform: Option<Transform>,
-    pub(crate) scale: f64,
-    pub(crate) make: String,
-    pub(crate) model: String,
-    pub(crate) serial_number: String,
+pub struct OutputHead {
+    pub name: String,
+    pub description: String,
+    pub physical_width: i32,
+    pub physical_height: i32,
+    pub modes: Vec<ObjectId>,
+    pub enabled: bool,
+    pub current_mode: Option<ObjectId>,
+    pub position_x: i32,
+    pub position_y: i32,
+    pub transform: Option<Transform>,
+    pub scale: f64,
+    pub make: String,
+    pub model: String,
+    pub serial_number: String,
 }
 
 impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
@@ -132,7 +132,7 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
 }
 
 impl OutputHead {
-    pub(crate) fn matches(&self, pat: &str) -> bool {
+    pub fn matches(&self, pat: &str) -> bool {
         self.name == pat || self.make == pat || self.model == pat
     }
 }

@@ -3,19 +3,19 @@ use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[clap(version)]
-pub(crate) struct ShikaneArgs {
+pub struct ShikaneArgs {
     /// Path to config file
     #[clap(short, long, value_name = "PATH")]
-    pub(crate) config: Option<PathBuf>,
+    pub config: Option<PathBuf>,
 
     /// Enable oneshot mode
     ///
     /// Exit after a profile has been applied or
     /// if no profile was matched
     #[clap(short, long)]
-    pub(crate) oneshot: bool,
+    pub oneshot: bool,
 
     /// Apply profiles untested
     #[clap(short, long)]
-    pub(crate) skip_tests: bool,
+    pub skip_tests: bool,
 }
