@@ -244,7 +244,7 @@ impl ShikaneState {
                                         trace!("[Exec] {:?}", cmd);
                                         match std::process::Command::new("sh")
                                             .arg("-c")
-                                            .arg(&cmd)
+                                            .arg(cmd)
                                             .output()
                                         {
                                             Ok(output) => {
