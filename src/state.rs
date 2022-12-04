@@ -272,6 +272,10 @@ impl ShikaneState {
                     }
                 }
 
+                if let Some(ref profile) = self.applied_profile {
+                    info!("Profile applied: {}", profile.name);
+                }
+
                 if self.args.oneshot {
                     self.backend.clean_up();
                     return Ok(State::ShuttingDown);
