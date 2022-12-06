@@ -15,7 +15,7 @@ use self::output_mode::OutputMode;
 use std::collections::HashMap;
 
 use calloop::channel::Sender;
-use smithay_client_toolkit::event_loop::WaylandSource;
+use wayland_client::WaylandSource;
 use wayland_client::{backend::ObjectId, Connection, Proxy, QueueHandle};
 use wayland_client::{DispatchError, EventQueue};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
