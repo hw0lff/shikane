@@ -125,7 +125,7 @@ impl ShikaneState {
         Ok(output_config)
     }
 
-    fn select_next_profile_then_configure_and_test(&mut self) -> Result<State, ShikaneError> {
+    fn configure_next_profile(&mut self) -> Result<State, ShikaneError> {
         self.selected_profile = self.list_of_unchecked_profiles.pop();
         let profile = match &self.selected_profile {
             Some(profile) => {
@@ -195,7 +195,7 @@ impl ShikaneState {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration
                 self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
             (State::TestingProfile(profile), StateInput::OutputManagerDone) => {
                 // OutputManager applied atomic changes to outputs.
@@ -214,7 +214,7 @@ impl ShikaneState {
             }
             (State::TestingProfile(profile), StateInput::OutputConfigurationFailed) => {
                 // Failed means that this profile (configuration) cannot work
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
             (State::TestingProfile(profile), StateInput::OutputConfigurationCancelled) => {
                 // Cancelled means that we can try again
@@ -287,7 +287,7 @@ impl ShikaneState {
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationFailed) => {
                 // Failed means that this profile (configuration) cannot work
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationCancelled) => {
                 // Cancelled means that we can try again
@@ -299,12 +299,12 @@ impl ShikaneState {
             (State::ProfileApplied(profile), StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
             (State::NoProfileApplied, StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
             (State::ShuttingDown, StateInput::OutputManagerDone) => unreachable!(),
             (State::ShuttingDown, StateInput::OutputManagerFinished) => {
