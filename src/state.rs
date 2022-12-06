@@ -228,43 +228,7 @@ impl ShikaneState {
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
-                if let Some(exec) = &profile.exec {
-                    let exec = exec.clone();
-                    trace!("Starting command exec thread");
-                    let handle = std::thread::Builder::new()
-                        .name("command exec".into())
-                        .spawn(move || {
-                            exec.iter().for_each(|cmd| {
-                                if !cmd.is_empty() {
-                                    trace!("[Exec] {:?}", cmd);
-                                    match std::process::Command::new("sh")
-                                        .arg("-c")
-                                        .arg(cmd)
-                                        .output()
-                                    {
-                                        Ok(output) => {
-                                            if let Ok(stdout) = String::from_utf8(output.stdout) {
-                                                trace!("[ExecOutput] {:?}", stdout)
-                                            }
-                                        }
-
-                                        Err(_) => error!("failed to spawn command: {:?}", cmd),
-                                    }
-                                }
-                            });
-                        })
-                        .expect("cannot spawn thread");
-
-                    if self.args.oneshot {
-                        match handle.join() {
-                            Ok(_) => {}
-                            Err(err) => {
-                                error!("[Exec] cannot join thread {:?}", err);
-                            }
-                        };
-                    }
-                }
-
+                execute_profile_commands(&profile, self.args.oneshot);
                 info!("Profile applied: {}", profile.name);
 
                 if self.args.oneshot {
@@ -313,6 +277,41 @@ impl ShikaneState {
             (_, StateInput::OutputConfigurationSucceeded) => unreachable!(),
             (_, StateInput::OutputConfigurationFailed) => unreachable!(),
             (_, StateInput::OutputConfigurationCancelled) => unreachable!(),
+        }
+    }
+}
+
+fn execute_profile_commands(profile: &Profile, oneshot: bool) {
+    if let Some(exec) = &profile.exec {
+        let exec = exec.clone();
+        trace!("Starting command exec thread");
+        let handle = std::thread::Builder::new()
+            .name("command exec".into())
+            .spawn(move || {
+                exec.iter().for_each(|cmd| {
+                    if !cmd.is_empty() {
+                        trace!("[Exec] {:?}", cmd);
+                        match std::process::Command::new("sh").arg("-c").arg(cmd).output() {
+                            Ok(output) => {
+                                if let Ok(stdout) = String::from_utf8(output.stdout) {
+                                    trace!("[ExecOutput] {:?}", stdout)
+                                }
+                            }
+
+                            Err(_) => error!("failed to spawn command: {:?}", cmd),
+                        }
+                    }
+                });
+            })
+            .expect("cannot spawn thread");
+
+        if oneshot {
+            match handle.join() {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("[Exec] cannot join thread {:?}", err);
+                }
+            };
         }
     }
 }
