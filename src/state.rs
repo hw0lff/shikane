@@ -146,12 +146,12 @@ impl ShikaneState {
         if self.args.skip_tests {
             configuration.apply();
             self.output_config = Some(configuration);
-            return Ok(State::ApplyingProfile(profile));
+            Ok(State::ApplyingProfile(profile))
+        } else {
+            configuration.test();
+            self.output_config = Some(configuration);
+            Ok(State::TestingProfile(profile))
         }
-        configuration.test();
-        self.output_config = Some(configuration);
-
-        Ok(State::TestingProfile(profile))
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
