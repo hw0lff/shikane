@@ -447,7 +447,6 @@ dependencies = [
  "thiserror",
  "toml",
  "wayland-client",
- "wayland-protocols",
  "wayland-protocols-wlr",
  "xdg",
 ]

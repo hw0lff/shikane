@@ -13,6 +13,5 @@ smithay-client-toolkit = { git = "https://github.com/Smithay/client-toolkit", re
 thiserror = "1.0.32"
 toml = { version = "0.5.9", features = ["preserve_order"] }
 wayland-client = { version = "=0.30.0-beta.10", features = ["log"] }
-wayland-protocols = { version = "=0.30.0-beta.10", features = ["client", "unstable"] }
 wayland-protocols-wlr = { version = "=0.1.0-beta.10", features = ["client"] }
 xdg = "2.4.1"
