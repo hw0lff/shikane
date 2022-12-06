@@ -101,23 +101,26 @@ impl ShikaneState {
             trace!("Setting Head: {:?}", output_head.name);
             let head = self.backend.head_from_id(head_id.clone())?;
 
-            if output.enable {
-                let opch = output_config.enable_head(&head, &self.backend.qh, self.backend.data);
-                // Mode
-                let (mode_id, output_mode) = self
-                    .backend
-                    .match_mode(head_id, &output.mode)
-                    .ok_or(ShikaneError::ConfigurationError)?;
-                trace!("Setting Mode: {:?}", output_mode);
-                let mode = self.backend.mode_from_id(mode_id)?;
-                opch.set_mode(&mode);
-
-                // Position
-                trace!("Setting position: {:?}", output.position);
-                opch.set_position(output.position.x, output.position.y);
-            } else {
+            // disable the head if is disabled in the config
+            if !output.enable {
                 output_config.disable_head(&head);
+                continue;
             }
+
+            // enable the head and set its properties
+            let opch = output_config.enable_head(&head, &self.backend.qh, self.backend.data);
+            // Mode
+            let (mode_id, output_mode) = self
+                .backend
+                .match_mode(head_id, &output.mode)
+                .ok_or(ShikaneError::ConfigurationError)?;
+            trace!("Setting Mode: {:?}", output_mode);
+            let mode = self.backend.mode_from_id(mode_id)?;
+            opch.set_mode(&mode);
+
+            // Position
+            trace!("Setting position: {:?}", output.position);
+            opch.set_position(output.position.x, output.position.y);
         }
 
         self.output_config = Some(output_config);
