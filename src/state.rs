@@ -284,15 +284,23 @@ impl ShikaneState {
 fn execute_profile_commands(profile: &Profile, oneshot: bool) {
     if let Some(exec) = &profile.exec {
         let exec = exec.clone();
-        trace!("Starting command exec thread");
-        let handle = std::thread::Builder::new()
+        trace!("[Exec] Starting command exec thread");
+        let handle = match std::thread::Builder::new()
             .name("command exec".into())
             .spawn(move || {
                 exec.iter().for_each(|cmd| execute_command(cmd));
-            })
-            .expect("cannot spawn thread");
+            }) {
+            Ok(joinhandle) => Some(joinhandle),
+            Err(err) => {
+                error!("[Exec] cannot spawn thread {:?}", err);
+                None
+            }
+        };
 
-        if oneshot {
+        if !oneshot {
+            return;
+        }
+        if let Some(handle) = handle {
             match handle.join() {
                 Ok(_) => {}
                 Err(err) => {
@@ -304,16 +312,17 @@ fn execute_profile_commands(profile: &Profile, oneshot: bool) {
 }
 
 fn execute_command(cmd: &str) {
-    if !cmd.is_empty() {
-        trace!("[Exec] {:?}", cmd);
-        match std::process::Command::new("sh").arg("-c").arg(cmd).output() {
-            Ok(output) => {
-                if let Ok(stdout) = String::from_utf8(output.stdout) {
-                    trace!("[ExecOutput] {:?}", stdout)
-                }
+    use std::process::Command;
+    if cmd.is_empty() {
+        return;
+    }
+    debug!("[Exec] {:?}", cmd);
+    match Command::new("sh").arg("-c").arg(cmd).output() {
+        Ok(output) => {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                trace!("[ExecOutput] {:?}", stdout)
             }
-
-            Err(_) => error!("failed to spawn command: {:?}", cmd),
         }
+        Err(_) => error!("[Exec] failed to spawn command: {:?}", cmd),
     }
 }
