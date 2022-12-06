@@ -18,8 +18,6 @@ pub struct ShikaneState {
     state: State,
     list_of_unchecked_profiles: Vec<Profile>,
     output_config: Option<ZwlrOutputConfigurationV1>,
-    applied_profile: Option<Profile>,
-    selected_profile: Option<Profile>,
 }
 
 #[derive(Clone, Debug)]
@@ -56,8 +54,6 @@ impl ShikaneState {
             state: State::StartingUp,
             list_of_unchecked_profiles: Vec::new(),
             output_config: None,
-            applied_profile: None,
-            selected_profile: None,
         }
     }
 
@@ -126,11 +122,10 @@ impl ShikaneState {
     }
 
     fn configure_next_profile(&mut self) -> Result<State, ShikaneError> {
-        self.selected_profile = self.list_of_unchecked_profiles.pop();
-        let profile = match &self.selected_profile {
+        let profile = match self.list_of_unchecked_profiles.pop() {
             Some(profile) => {
                 trace!("Selected profile: {}", profile.name);
-                profile.clone()
+                profile
             }
             None => {
                 warn!("No profiles matched the currently connected outputs");
@@ -233,50 +228,44 @@ impl ShikaneState {
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
-                self.applied_profile = self.selected_profile.clone();
-                if let Some(profile) = &self.applied_profile {
-                    if let Some(exec) = &profile.exec {
-                        let exec = exec.clone();
-                        trace!("Starting command exec thread");
-                        let handle = std::thread::Builder::new()
-                            .name("command exec".into())
-                            .spawn(move || {
-                                exec.iter().for_each(|cmd| {
-                                    if !cmd.is_empty() {
-                                        trace!("[Exec] {:?}", cmd);
-                                        match std::process::Command::new("sh")
-                                            .arg("-c")
-                                            .arg(cmd)
-                                            .output()
-                                        {
-                                            Ok(output) => {
-                                                if let Ok(stdout) = String::from_utf8(output.stdout)
-                                                {
-                                                    trace!("[ExecOutput] {:?}", stdout)
-                                                }
+                if let Some(exec) = &profile.exec {
+                    let exec = exec.clone();
+                    trace!("Starting command exec thread");
+                    let handle = std::thread::Builder::new()
+                        .name("command exec".into())
+                        .spawn(move || {
+                            exec.iter().for_each(|cmd| {
+                                if !cmd.is_empty() {
+                                    trace!("[Exec] {:?}", cmd);
+                                    match std::process::Command::new("sh")
+                                        .arg("-c")
+                                        .arg(cmd)
+                                        .output()
+                                    {
+                                        Ok(output) => {
+                                            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                                                trace!("[ExecOutput] {:?}", stdout)
                                             }
-
-                                            Err(_) => error!("failed to spawn command: {:?}", cmd),
                                         }
-                                    }
-                                });
-                            })
-                            .expect("cannot spawn thread");
 
-                        if self.args.oneshot {
-                            match handle.join() {
-                                Ok(_) => {}
-                                Err(err) => {
-                                    error!("[Exec] cannot join thread {:?}", err);
+                                        Err(_) => error!("failed to spawn command: {:?}", cmd),
+                                    }
                                 }
-                            };
-                        }
+                            });
+                        })
+                        .expect("cannot spawn thread");
+
+                    if self.args.oneshot {
+                        match handle.join() {
+                            Ok(_) => {}
+                            Err(err) => {
+                                error!("[Exec] cannot join thread {:?}", err);
+                            }
+                        };
                     }
                 }
 
-                if let Some(ref profile) = self.applied_profile {
-                    info!("Profile applied: {}", profile.name);
-                }
+                info!("Profile applied: {}", profile.name);
 
                 if self.args.oneshot {
                     self.backend.clean_up();
