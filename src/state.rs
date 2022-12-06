@@ -288,20 +288,7 @@ fn execute_profile_commands(profile: &Profile, oneshot: bool) {
         let handle = std::thread::Builder::new()
             .name("command exec".into())
             .spawn(move || {
-                exec.iter().for_each(|cmd| {
-                    if !cmd.is_empty() {
-                        trace!("[Exec] {:?}", cmd);
-                        match std::process::Command::new("sh").arg("-c").arg(cmd).output() {
-                            Ok(output) => {
-                                if let Ok(stdout) = String::from_utf8(output.stdout) {
-                                    trace!("[ExecOutput] {:?}", stdout)
-                                }
-                            }
-
-                            Err(_) => error!("failed to spawn command: {:?}", cmd),
-                        }
-                    }
-                });
+                exec.iter().for_each(|cmd| execute_command(cmd));
             })
             .expect("cannot spawn thread");
 
@@ -312,6 +299,21 @@ fn execute_profile_commands(profile: &Profile, oneshot: bool) {
                     error!("[Exec] cannot join thread {:?}", err);
                 }
             };
+        }
+    }
+}
+
+fn execute_command(cmd: &str) {
+    if !cmd.is_empty() {
+        trace!("[Exec] {:?}", cmd);
+        match std::process::Command::new("sh").arg("-c").arg(cmd).output() {
+            Ok(output) => {
+                if let Ok(stdout) = String::from_utf8(output.stdout) {
+                    trace!("[ExecOutput] {:?}", stdout)
+                }
+            }
+
+            Err(_) => error!("failed to spawn command: {:?}", cmd),
         }
     }
 }
