@@ -22,12 +22,12 @@ pub struct ShikaneState {
     selected_profile: Option<Profile>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 enum State {
     StartingUp,
-    TestingProfile,
-    ApplyingProfile,
-    ProfileApplied,
+    TestingProfile(Profile),
+    ApplyingProfile(Profile),
+    ProfileApplied(Profile),
     NoProfileApplied,
     ShuttingDown,
 }
@@ -85,11 +85,10 @@ impl ShikaneState {
         self.backend.output_heads.len() == matches
     }
 
-    fn configure_selected_profile(&mut self) -> Result<(), ShikaneError> {
-        let profile = self
-            .selected_profile
-            .as_ref()
-            .ok_or(ShikaneError::ConfigurationError)?;
+    fn configure_profile(
+        &mut self,
+        profile: &Profile,
+    ) -> Result<ZwlrOutputConfigurationV1, ShikaneError> {
         let output_config = self.backend.create_configuration();
         debug!("Configuring profile: {}", profile.name);
 
@@ -123,14 +122,16 @@ impl ShikaneState {
             opch.set_position(output.position.x, output.position.y);
         }
 
-        self.output_config = Some(output_config);
-        Ok(())
+        Ok(output_config)
     }
 
     fn select_next_profile_then_configure_and_test(&mut self) -> Result<State, ShikaneError> {
         self.selected_profile = self.list_of_unchecked_profiles.pop();
-        match &self.selected_profile {
-            Some(profile) => trace!("Selected profile: {}", profile.name),
+        let profile = match &self.selected_profile {
+            Some(profile) => {
+                trace!("Selected profile: {}", profile.name);
+                profile.clone()
+            }
             None => {
                 warn!("No profiles matched the currently connected outputs");
                 if self.args.oneshot {
@@ -139,26 +140,18 @@ impl ShikaneState {
                 }
                 return Ok(State::NoProfileApplied);
             }
-        }
-        self.configure_selected_profile()?;
+        };
+
+        let configuration = self.configure_profile(&profile)?;
         if self.args.skip_tests {
-            return self.apply_configured_profile();
+            configuration.apply();
+            self.output_config = Some(configuration);
+            return Ok(State::ApplyingProfile(profile));
         }
-        self.output_config
-            .as_ref()
-            .ok_or(ShikaneError::ConfigurationError)? // "No profile configured"
-            .test();
+        configuration.test();
+        self.output_config = Some(configuration);
 
-        Ok(State::TestingProfile)
-    }
-
-    fn apply_configured_profile(&mut self) -> Result<State, ShikaneError> {
-        self.output_config
-            .as_ref()
-            .ok_or(ShikaneError::ConfigurationError)? // "No profile configured"
-            .apply();
-
-        Ok(State::ApplyingProfile)
+        Ok(State::TestingProfile(profile))
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
@@ -198,41 +191,47 @@ impl ShikaneState {
             StateInput::OutputConfigurationCancelled => self.destroy_config(),
         };
 
-        match (self.state, input) {
+        match (self.state.clone(), input) {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration
                 self.create_list_of_unchecked_profiles();
                 self.select_next_profile_then_configure_and_test()
             }
-            (State::TestingProfile, StateInput::OutputManagerDone) => {
+            (State::TestingProfile(profile), StateInput::OutputManagerDone) => {
                 // OutputManager applied atomic changes to outputs.
                 // If outdated information has been sent to the server
                 // we will get the Cancelled event.
                 //
                 // Do nothing
-                Ok(State::TestingProfile)
+                Ok(State::TestingProfile(profile))
             }
-            (State::TestingProfile, StateInput::OutputConfigurationSucceeded) => {
+            (State::TestingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
-                self.configure_selected_profile()?;
-                self.apply_configured_profile()
+                let configuration = self.configure_profile(&profile)?;
+                configuration.apply();
+                self.output_config = Some(configuration);
+                Ok(State::ApplyingProfile(profile))
             }
-            (State::TestingProfile, StateInput::OutputConfigurationFailed) => {
+            (State::TestingProfile(profile), StateInput::OutputConfigurationFailed) => {
+                // Failed means that this profile (configuration) cannot work
                 self.select_next_profile_then_configure_and_test()
             }
-            (State::TestingProfile, StateInput::OutputConfigurationCancelled) => {
-                self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+            (State::TestingProfile(profile), StateInput::OutputConfigurationCancelled) => {
+                // Cancelled means that we can try again
+                let configuration = self.configure_profile(&profile)?;
+                configuration.test();
+                self.output_config = Some(configuration);
+                Ok(State::TestingProfile(profile))
             }
-            (State::ApplyingProfile, StateInput::OutputManagerDone) => {
+            (State::ApplyingProfile(profile), StateInput::OutputManagerDone) => {
                 // OutputManager applied atomic changes to outputs.
                 // If outdated information has been sent to the server
                 // we will get the Cancelled event.
                 //
                 // Do nothing
-                Ok(State::ApplyingProfile)
+                Ok(State::ApplyingProfile(profile))
             }
-            (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
+            (State::ApplyingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
                 self.applied_profile = self.selected_profile.clone();
                 if let Some(profile) = &self.applied_profile {
@@ -284,16 +283,20 @@ impl ShikaneState {
                     return Ok(State::ShuttingDown);
                 }
 
-                Ok(State::ProfileApplied)
+                Ok(State::ProfileApplied(profile))
             }
-            (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
+            (State::ApplyingProfile(profile), StateInput::OutputConfigurationFailed) => {
+                // Failed means that this profile (configuration) cannot work
                 self.select_next_profile_then_configure_and_test()
             }
-            (State::ApplyingProfile, StateInput::OutputConfigurationCancelled) => {
-                self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+            (State::ApplyingProfile(profile), StateInput::OutputConfigurationCancelled) => {
+                // Cancelled means that we can try again
+                let configuration = self.configure_profile(&profile)?;
+                configuration.apply();
+                self.output_config = Some(configuration);
+                Ok(State::ApplyingProfile(profile))
             }
-            (State::ProfileApplied, StateInput::OutputManagerDone) => {
+            (State::ProfileApplied(profile), StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
                 self.select_next_profile_then_configure_and_test()
