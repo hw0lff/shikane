@@ -137,16 +137,25 @@ impl ShikaneState {
             }
         };
 
-        let configuration = self.configure_profile(&profile)?;
         if self.args.skip_tests {
-            configuration.apply();
-            self.output_config = Some(configuration);
-            Ok(State::ApplyingProfile(profile))
+            self.apply_profile(profile)
         } else {
-            configuration.test();
-            self.output_config = Some(configuration);
-            Ok(State::TestingProfile(profile))
+            self.test_profile(profile)
         }
+    }
+
+    fn test_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
+        let configuration = self.configure_profile(&profile)?;
+        configuration.test();
+        self.output_config = Some(configuration);
+        Ok(State::TestingProfile(profile))
+    }
+
+    fn apply_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
+        let configuration = self.configure_profile(&profile)?;
+        configuration.apply();
+        self.output_config = Some(configuration);
+        Ok(State::ApplyingProfile(profile))
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
@@ -202,10 +211,7 @@ impl ShikaneState {
             }
             (State::TestingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
-                let configuration = self.configure_profile(&profile)?;
-                configuration.apply();
-                self.output_config = Some(configuration);
-                Ok(State::ApplyingProfile(profile))
+                self.apply_profile(profile)
             }
             (State::TestingProfile(profile), StateInput::OutputConfigurationFailed) => {
                 // Failed means that this profile (configuration) cannot work
@@ -213,10 +219,7 @@ impl ShikaneState {
             }
             (State::TestingProfile(profile), StateInput::OutputConfigurationCancelled) => {
                 // Cancelled means that we can try again
-                let configuration = self.configure_profile(&profile)?;
-                configuration.test();
-                self.output_config = Some(configuration);
-                Ok(State::TestingProfile(profile))
+                self.test_profile(profile)
             }
             (State::ApplyingProfile(profile), StateInput::OutputManagerDone) => {
                 // OutputManager applied atomic changes to outputs.
@@ -244,10 +247,7 @@ impl ShikaneState {
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationCancelled) => {
                 // Cancelled means that we can try again
-                let configuration = self.configure_profile(&profile)?;
-                configuration.apply();
-                self.output_config = Some(configuration);
-                Ok(State::ApplyingProfile(profile))
+                self.apply_profile(profile)
             }
             (State::ProfileApplied(profile), StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
