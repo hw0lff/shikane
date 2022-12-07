@@ -16,7 +16,7 @@ pub struct ShikaneState {
     pub config: ShikaneConfig,
     loop_signal: LoopSignal,
     state: State,
-    list_of_unchecked_profiles: Vec<Profile>,
+    unchecked_profiles: Vec<Profile>,
     output_config: Option<ZwlrOutputConfigurationV1>,
 }
 
@@ -52,7 +52,7 @@ impl ShikaneState {
             config,
             loop_signal,
             state: State::StartingUp,
-            list_of_unchecked_profiles: Vec::new(),
+            unchecked_profiles: Vec::new(),
             output_config: None,
         }
     }
@@ -122,7 +122,7 @@ impl ShikaneState {
     }
 
     fn configure_next_profile(&mut self) -> Result<State, ShikaneError> {
-        let profile = match self.list_of_unchecked_profiles.pop() {
+        let profile = match self.unchecked_profiles.pop() {
             Some(profile) => {
                 trace!("Selected profile: {}", profile.name);
                 profile
@@ -159,7 +159,7 @@ impl ShikaneState {
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
-        self.list_of_unchecked_profiles = self
+        self.unchecked_profiles = self
             .config
             .profiles
             .iter()
