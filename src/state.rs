@@ -217,11 +217,10 @@ impl ShikaneState {
 
                 Ok(State::ProfileApplied(profile))
             }
-            (State::TestingProfile(profile), StateInput::OutputConfigurationFailed) => {
-                // Failed means that this profile (configuration) cannot work
-                self.configure_next_profile()
-            }
-            (State::ApplyingProfile(profile), StateInput::OutputConfigurationFailed) => {
+            (
+                State::TestingProfile(_) | State::ApplyingProfile(_),
+                StateInput::OutputConfigurationFailed,
+            ) => {
                 // Failed means that this profile (configuration) cannot work
                 self.configure_next_profile()
             }
