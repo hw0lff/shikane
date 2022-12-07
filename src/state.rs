@@ -201,33 +201,9 @@ impl ShikaneState {
                 self.create_list_of_unchecked_profiles();
                 self.configure_next_profile()
             }
-            (State::TestingProfile(profile), StateInput::OutputManagerDone) => {
-                // OutputManager applied atomic changes to outputs.
-                // If outdated information has been sent to the server
-                // we will get the Cancelled event.
-                //
-                // Do nothing
-                Ok(State::TestingProfile(profile))
-            }
             (State::TestingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
                 self.apply_profile(profile)
-            }
-            (State::TestingProfile(profile), StateInput::OutputConfigurationFailed) => {
-                // Failed means that this profile (configuration) cannot work
-                self.configure_next_profile()
-            }
-            (State::TestingProfile(profile), StateInput::OutputConfigurationCancelled) => {
-                // Cancelled means that we can try again
-                self.test_profile(profile)
-            }
-            (State::ApplyingProfile(profile), StateInput::OutputManagerDone) => {
-                // OutputManager applied atomic changes to outputs.
-                // If outdated information has been sent to the server
-                // we will get the Cancelled event.
-                //
-                // Do nothing
-                Ok(State::ApplyingProfile(profile))
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
@@ -241,9 +217,17 @@ impl ShikaneState {
 
                 Ok(State::ProfileApplied(profile))
             }
+            (State::TestingProfile(profile), StateInput::OutputConfigurationFailed) => {
+                // Failed means that this profile (configuration) cannot work
+                self.configure_next_profile()
+            }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationFailed) => {
                 // Failed means that this profile (configuration) cannot work
                 self.configure_next_profile()
+            }
+            (State::TestingProfile(profile), StateInput::OutputConfigurationCancelled) => {
+                // Cancelled means that we can try again
+                self.test_profile(profile)
             }
             (State::ApplyingProfile(profile), StateInput::OutputConfigurationCancelled) => {
                 // Cancelled means that we can try again
@@ -253,6 +237,22 @@ impl ShikaneState {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
                 self.configure_next_profile()
+            }
+            (State::TestingProfile(profile), StateInput::OutputManagerDone) => {
+                // OutputManager applied atomic changes to outputs.
+                // If outdated information has been sent to the server
+                // we will get the Cancelled event.
+                //
+                // Do nothing
+                Ok(State::TestingProfile(profile))
+            }
+            (State::ApplyingProfile(profile), StateInput::OutputManagerDone) => {
+                // OutputManager applied atomic changes to outputs.
+                // If outdated information has been sent to the server
+                // we will get the Cancelled event.
+                //
+                // Do nothing
+                Ok(State::ApplyingProfile(profile))
             }
             (State::NoProfileApplied, StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
