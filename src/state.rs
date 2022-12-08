@@ -234,9 +234,16 @@ impl ShikaneState {
                 // Cancelled means that we can try again
                 self.apply_profile(profile)
             }
-            (State::ProfileApplied(profile), StateInput::OutputManagerDone) => {
+            (State::ProfileApplied(applied_profile), StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
+                // If the newly selected profile is the same as the one that is already applied
+                // then do nothing
+                if let Some(selected_profile) = self.unchecked_profiles.first() {
+                    if *selected_profile == applied_profile {
+                        return Ok(State::ProfileApplied(applied_profile));
+                    }
+                }
                 self.configure_next_profile()
             }
             (State::TestingProfile(profile), StateInput::OutputManagerDone) => {
