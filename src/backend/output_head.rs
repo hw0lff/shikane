@@ -73,8 +73,8 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
                 head.modes.push(mode.id());
             }
             ZwlrOutputHeadEvent::Enabled { enabled } => {
-                trace!("[Event::Enabled]");
-                head.enabled = !matches!(enabled, 0)
+                head.enabled = !matches!(enabled, 0);
+                trace!("[Event::Enabled] {}", head.enabled);
             }
             ZwlrOutputHeadEvent::CurrentMode { mode } => {
                 trace!("[Event::CurrentMode] id: {:?}", mode.id());
