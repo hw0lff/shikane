@@ -7,7 +7,7 @@ pub enum ShikaneError {
     #[error(transparent)]
     EventLoop(#[from] ::calloop::error::Error),
     #[error(transparent)]
-    IoError(#[from] std::io::Error),
+    Io(#[from] std::io::Error),
     #[error(transparent)]
     TomlSerde(#[from] toml::de::Error),
     #[error("Unable to release resources associated with destroyed mode")]
