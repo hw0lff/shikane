@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::Profile;
@@ -16,18 +18,16 @@ pub struct ShikaneState {
     pub config: ShikaneConfig,
     loop_signal: LoopSignal,
     state: State,
-    list_of_unchecked_profiles: Vec<Profile>,
+    unchecked_profiles: Vec<Profile>,
     output_config: Option<ZwlrOutputConfigurationV1>,
-    applied_profile: Option<Profile>,
-    selected_profile: Option<Profile>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 enum State {
     StartingUp,
-    TestingProfile,
-    ApplyingProfile,
-    ProfileApplied,
+    TestingProfile(Profile),
+    ApplyingProfile(Profile),
+    ProfileApplied(Profile),
     NoProfileApplied,
     ShuttingDown,
 }
@@ -54,10 +54,8 @@ impl ShikaneState {
             config,
             loop_signal,
             state: State::StartingUp,
-            list_of_unchecked_profiles: Vec::new(),
+            unchecked_profiles: Vec::new(),
             output_config: None,
-            applied_profile: None,
-            selected_profile: None,
         }
     }
 
@@ -85,11 +83,10 @@ impl ShikaneState {
         self.backend.output_heads.len() == matches
     }
 
-    fn configure_selected_profile(&mut self) -> Result<(), ShikaneError> {
-        let profile = self
-            .selected_profile
-            .as_ref()
-            .ok_or(ShikaneError::ConfigurationError)?;
+    fn configure_profile(
+        &mut self,
+        profile: &Profile,
+    ) -> Result<ZwlrOutputConfigurationV1, ShikaneError> {
         let output_config = self.backend.create_configuration();
         debug!("Configuring profile: {}", profile.name);
 
@@ -101,33 +98,37 @@ impl ShikaneState {
             trace!("Setting Head: {:?}", output_head.name);
             let head = self.backend.head_from_id(head_id.clone())?;
 
-            if output.enable {
-                let opch = output_config.enable_head(&head, &self.backend.qh, self.backend.data);
-                // Mode
-                let (mode_id, output_mode) = self
-                    .backend
-                    .match_mode(head_id, &output.mode)
-                    .ok_or(ShikaneError::ConfigurationError)?;
-                trace!("Setting Mode: {:?}", output_mode);
-                let mode = self.backend.mode_from_id(mode_id)?;
-                opch.set_mode(&mode);
-
-                // Position
-                trace!("Setting position: {:?}", output.position);
-                opch.set_position(output.position.x, output.position.y);
-            } else {
+            // disable the head if is disabled in the config
+            if !output.enable {
                 output_config.disable_head(&head);
+                continue;
             }
+
+            // enable the head and set its properties
+            let opch = output_config.enable_head(&head, &self.backend.qh, self.backend.data);
+            // Mode
+            let (mode_id, output_mode) = self
+                .backend
+                .match_mode(head_id, &output.mode)
+                .ok_or(ShikaneError::ConfigurationError)?;
+            trace!("Setting Mode: {:?}", output_mode);
+            let mode = self.backend.mode_from_id(mode_id)?;
+            opch.set_mode(&mode);
+
+            // Position
+            trace!("Setting position: {:?}", output.position);
+            opch.set_position(output.position.x, output.position.y);
         }
 
-        self.output_config = Some(output_config);
-        Ok(())
+        Ok(output_config)
     }
 
-    fn select_next_profile_then_configure_and_test(&mut self) -> Result<State, ShikaneError> {
-        self.selected_profile = self.list_of_unchecked_profiles.pop();
-        match &self.selected_profile {
-            Some(profile) => trace!("Selected profile: {}", profile.name),
+    fn configure_next_profile(&mut self) -> Result<State, ShikaneError> {
+        let profile = match self.unchecked_profiles.pop() {
+            Some(profile) => {
+                trace!("Selected profile: {}", profile.name);
+                profile
+            }
             None => {
                 warn!("No profiles matched the currently connected outputs");
                 if self.args.oneshot {
@@ -136,30 +137,31 @@ impl ShikaneState {
                 }
                 return Ok(State::NoProfileApplied);
             }
-        }
-        self.configure_selected_profile()?;
-        if self.args.skip_tests {
-            return self.apply_configured_profile();
-        }
-        self.output_config
-            .as_ref()
-            .ok_or(ShikaneError::ConfigurationError)? // "No profile configured"
-            .test();
+        };
 
-        Ok(State::TestingProfile)
+        if self.args.skip_tests {
+            self.apply_profile(profile)
+        } else {
+            self.test_profile(profile)
+        }
     }
 
-    fn apply_configured_profile(&mut self) -> Result<State, ShikaneError> {
-        self.output_config
-            .as_ref()
-            .ok_or(ShikaneError::ConfigurationError)? // "No profile configured"
-            .apply();
+    fn test_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
+        let configuration = self.configure_profile(&profile)?;
+        configuration.test();
+        self.output_config = Some(configuration);
+        Ok(State::TestingProfile(profile))
+    }
 
-        Ok(State::ApplyingProfile)
+    fn apply_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
+        let configuration = self.configure_profile(&profile)?;
+        configuration.apply();
+        self.output_config = Some(configuration);
+        Ok(State::ApplyingProfile(profile))
     }
 
     fn create_list_of_unchecked_profiles(&mut self) {
-        self.list_of_unchecked_profiles = self
+        self.unchecked_profiles = self
             .config
             .profiles
             .iter()
@@ -173,7 +175,7 @@ impl ShikaneState {
     }
 
     pub fn advance(&mut self, input: StateInput) {
-        trace!("Previous state: {:?}, input: {:?}", self.state, input);
+        debug!("Previous state: {}, input: {}", self.state, input);
         let next_state = match self.match_input(input) {
             Ok(s) => s,
             Err(err) => {
@@ -182,7 +184,7 @@ impl ShikaneState {
                 State::ShuttingDown
             }
         };
-        trace!("Next state: {:?}", next_state);
+        debug!("Next state: {}", next_state);
         self.state = next_state;
     }
 
@@ -195,110 +197,68 @@ impl ShikaneState {
             StateInput::OutputConfigurationCancelled => self.destroy_config(),
         };
 
-        match (self.state, input) {
+        match (self.state.clone(), input) {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration
                 self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
-            (State::TestingProfile, StateInput::OutputManagerDone) => {
-                // OutputManager applied atomic changes to outputs.
-                // If outdated information has been sent to the server
-                // we will get the Cancelled event.
-                //
-                // Do nothing
-                Ok(State::TestingProfile)
-            }
-            (State::TestingProfile, StateInput::OutputConfigurationSucceeded) => {
+            (State::TestingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile passed testing
-                self.configure_selected_profile()?;
-                self.apply_configured_profile()
+                self.apply_profile(profile)
             }
-            (State::TestingProfile, StateInput::OutputConfigurationFailed) => {
-                self.select_next_profile_then_configure_and_test()
-            }
-            (State::TestingProfile, StateInput::OutputConfigurationCancelled) => {
-                self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
-            }
-            (State::ApplyingProfile, StateInput::OutputManagerDone) => {
-                // OutputManager applied atomic changes to outputs.
-                // If outdated information has been sent to the server
-                // we will get the Cancelled event.
-                //
-                // Do nothing
-                Ok(State::ApplyingProfile)
-            }
-            (State::ApplyingProfile, StateInput::OutputConfigurationSucceeded) => {
+            (State::ApplyingProfile(profile), StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
-                self.applied_profile = self.selected_profile.clone();
-                if let Some(profile) = &self.applied_profile {
-                    if let Some(exec) = &profile.exec {
-                        let exec = exec.clone();
-                        trace!("Starting command exec thread");
-                        let handle = std::thread::Builder::new()
-                            .name("command exec".into())
-                            .spawn(move || {
-                                exec.iter().for_each(|cmd| {
-                                    if !cmd.is_empty() {
-                                        trace!("[Exec] {:?}", cmd);
-                                        match std::process::Command::new("sh")
-                                            .arg("-c")
-                                            .arg(cmd)
-                                            .output()
-                                        {
-                                            Ok(output) => {
-                                                if let Ok(stdout) = String::from_utf8(output.stdout)
-                                                {
-                                                    trace!("[ExecOutput] {:?}", stdout)
-                                                }
-                                            }
-
-                                            Err(_) => error!("failed to spawn command: {:?}", cmd),
-                                        }
-                                    }
-                                });
-                            })
-                            .expect("cannot spawn thread");
-
-                        if self.args.oneshot {
-                            match handle.join() {
-                                Ok(_) => {}
-                                Err(err) => {
-                                    error!("[Exec] cannot join thread {:?}", err);
-                                }
-                            };
-                        }
-                    }
-                }
-
-                if let Some(ref profile) = self.applied_profile {
-                    info!("Profile applied: {}", profile.name);
-                }
+                execute_profile_commands(&profile, self.args.oneshot);
+                info!("Profile applied: {}", profile.name);
 
                 if self.args.oneshot {
                     self.backend.clean_up();
                     return Ok(State::ShuttingDown);
                 }
 
-                Ok(State::ProfileApplied)
+                Ok(State::ProfileApplied(profile))
             }
-            (State::ApplyingProfile, StateInput::OutputConfigurationFailed) => {
-                self.select_next_profile_then_configure_and_test()
+            (
+                State::TestingProfile(_) | State::ApplyingProfile(_),
+                StateInput::OutputConfigurationFailed,
+            ) => {
+                // Failed means that this profile (configuration) cannot work
+                self.configure_next_profile()
             }
-            (State::ApplyingProfile, StateInput::OutputConfigurationCancelled) => {
-                self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+            (State::TestingProfile(profile), StateInput::OutputConfigurationCancelled) => {
+                // Cancelled means that we can try again
+                self.test_profile(profile)
             }
-            (State::ProfileApplied, StateInput::OutputManagerDone) => {
+            (State::ApplyingProfile(profile), StateInput::OutputConfigurationCancelled) => {
+                // Cancelled means that we can try again
+                self.apply_profile(profile)
+            }
+            (State::ProfileApplied(profile), StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
+            }
+            (State::TestingProfile(profile), StateInput::OutputManagerDone) => {
+                // OutputManager applied atomic changes to outputs.
+                // If outdated information has been sent to the server
+                // we will get the Cancelled event.
+                //
+                // Do nothing
+                Ok(State::TestingProfile(profile))
+            }
+            (State::ApplyingProfile(profile), StateInput::OutputManagerDone) => {
+                // OutputManager applied atomic changes to outputs.
+                // If outdated information has been sent to the server
+                // we will get the Cancelled event.
+                //
+                // Do nothing
+                Ok(State::ApplyingProfile(profile))
             }
             (State::NoProfileApplied, StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
                 self.create_list_of_unchecked_profiles();
-                self.select_next_profile_then_configure_and_test()
+                self.configure_next_profile()
             }
             (State::ShuttingDown, StateInput::OutputManagerDone) => unreachable!(),
             (State::ShuttingDown, StateInput::OutputManagerFinished) => {
@@ -318,6 +278,77 @@ impl ShikaneState {
             (_, StateInput::OutputConfigurationSucceeded) => unreachable!(),
             (_, StateInput::OutputConfigurationFailed) => unreachable!(),
             (_, StateInput::OutputConfigurationCancelled) => unreachable!(),
+        }
+    }
+}
+
+fn execute_profile_commands(profile: &Profile, oneshot: bool) {
+    if let Some(exec) = &profile.exec {
+        let exec = exec.clone();
+        trace!("[Exec] Starting command exec thread");
+        let handle = match std::thread::Builder::new()
+            .name("command exec".into())
+            .spawn(move || {
+                exec.iter().for_each(|cmd| execute_command(cmd));
+            }) {
+            Ok(joinhandle) => Some(joinhandle),
+            Err(err) => {
+                error!("[Exec] cannot spawn thread {:?}", err);
+                None
+            }
+        };
+
+        if !oneshot {
+            return;
+        }
+        if let Some(handle) = handle {
+            match handle.join() {
+                Ok(_) => {}
+                Err(err) => {
+                    error!("[Exec] cannot join thread {:?}", err);
+                }
+            };
+        }
+    }
+}
+
+fn execute_command(cmd: &str) {
+    use std::process::Command;
+    if cmd.is_empty() {
+        return;
+    }
+    debug!("[Exec] {:?}", cmd);
+    match Command::new("sh").arg("-c").arg(cmd).output() {
+        Ok(output) => {
+            if let Ok(stdout) = String::from_utf8(output.stdout) {
+                trace!("[ExecOutput] {:?}", stdout)
+            }
+        }
+        Err(_) => error!("[Exec] failed to spawn command: {:?}", cmd),
+    }
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::StartingUp => write!(f, "StartingUp"),
+            State::TestingProfile(_) => write!(f, "TestingProfile"),
+            State::ApplyingProfile(_) => write!(f, "ApplyingProfile"),
+            State::ProfileApplied(_) => write!(f, "ProfileApplied"),
+            State::NoProfileApplied => write!(f, "NoProfileApplied"),
+            State::ShuttingDown => write!(f, "ShuttingDown"),
+        }
+    }
+}
+
+impl Display for StateInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StateInput::OutputManagerDone => write!(f, "OutputManagerDone"),
+            StateInput::OutputManagerFinished => write!(f, "OutputManagerFinished"),
+            StateInput::OutputConfigurationSucceeded => write!(f, "OutputConfigurationSucceeded"),
+            StateInput::OutputConfigurationFailed => write!(f, "OutputConfigurationFailed"),
+            StateInput::OutputConfigurationCancelled => write!(f, "OutputConfigurationCancelled"),
         }
     }
 }
