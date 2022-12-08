@@ -2,23 +2,23 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum ShikaneError {
-    #[error("Cannot apply configuration")]
+    #[error("Configuration: Cannot apply configuration")]
     ConfigurationError,
-    #[error(transparent)]
+    #[error("EventLoop: {0}")]
     EventLoop(#[from] ::calloop::error::Error),
-    #[error(transparent)]
+    #[error("Io: {0}")]
     Io(#[from] std::io::Error),
-    #[error(transparent)]
+    #[error("TomlSerde: {0}")]
     TomlSerde(#[from] toml::de::Error),
     #[error("Unable to release resources associated with destroyed mode")]
     ReleaseOutputMode,
-    #[error(transparent)]
+    #[error("WaylandBackend: {0}")]
     WaylandBackend(#[from] ::wayland_client::backend::WaylandError),
-    #[error(transparent)]
+    #[error("WaylandConnection: {0}")]
     WaylandConnection(#[from] ::wayland_client::ConnectError),
-    #[error("Cannot get wayland object from specified ID")]
+    #[error("Cannot get wayland object from specified ID: {0}")]
     WaylandInvalidId(#[from] ::wayland_client::backend::InvalidId),
-    #[error(transparent)]
+    #[error("Xdg: {0}")]
     Xdg(#[from] ::xdg::BaseDirectoriesError),
 }
 
