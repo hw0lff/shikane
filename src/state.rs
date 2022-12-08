@@ -88,6 +88,7 @@ impl ShikaneState {
         profile: &Profile,
     ) -> Result<ZwlrOutputConfigurationV1, ShikaneError> {
         let output_config = self.backend.create_configuration();
+        self.output_config = Some(output_config.clone());
         debug!("Configuring profile: {}", profile.name);
 
         for output in profile.outputs.iter() {
@@ -139,24 +140,29 @@ impl ShikaneState {
             }
         };
 
-        if self.args.skip_tests {
+        let next_state = if self.args.skip_tests {
             self.apply_profile(profile)
         } else {
             self.test_profile(profile)
+        };
+
+        // Destroy the possibly remaining ZwlrOutputConfigurationV1 if an error has occurred
+        if next_state.is_err() {
+            self.destroy_config();
         }
+
+        next_state
     }
 
     fn test_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
         let configuration = self.configure_profile(&profile)?;
         configuration.test();
-        self.output_config = Some(configuration);
         Ok(State::TestingProfile(profile))
     }
 
     fn apply_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
         let configuration = self.configure_profile(&profile)?;
         configuration.apply();
-        self.output_config = Some(configuration);
         Ok(State::ApplyingProfile(profile))
     }
 
