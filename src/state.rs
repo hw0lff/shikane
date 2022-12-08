@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::Profile;
@@ -173,7 +175,7 @@ impl ShikaneState {
     }
 
     pub fn advance(&mut self, input: StateInput) {
-        trace!("Previous state: {:?}, input: {:?}", self.state, input);
+        debug!("Previous state: {}, input: {}", self.state, input);
         let next_state = match self.match_input(input) {
             Ok(s) => s,
             Err(err) => {
@@ -182,7 +184,7 @@ impl ShikaneState {
                 State::ShuttingDown
             }
         };
-        trace!("Next state: {:?}", next_state);
+        debug!("Next state: {}", next_state);
         self.state = next_state;
     }
 
@@ -323,5 +325,30 @@ fn execute_command(cmd: &str) {
             }
         }
         Err(_) => error!("[Exec] failed to spawn command: {:?}", cmd),
+    }
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            State::StartingUp => write!(f, "StartingUp"),
+            State::TestingProfile(_) => write!(f, "TestingProfile"),
+            State::ApplyingProfile(_) => write!(f, "ApplyingProfile"),
+            State::ProfileApplied(_) => write!(f, "ProfileApplied"),
+            State::NoProfileApplied => write!(f, "NoProfileApplied"),
+            State::ShuttingDown => write!(f, "ShuttingDown"),
+        }
+    }
+}
+
+impl Display for StateInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            StateInput::OutputManagerDone => write!(f, "OutputManagerDone"),
+            StateInput::OutputManagerFinished => write!(f, "OutputManagerFinished"),
+            StateInput::OutputConfigurationSucceeded => write!(f, "OutputConfigurationSucceeded"),
+            StateInput::OutputConfigurationFailed => write!(f, "OutputConfigurationFailed"),
+            StateInput::OutputConfigurationCancelled => write!(f, "OutputConfigurationCancelled"),
+        }
     }
 }
