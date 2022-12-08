@@ -125,33 +125,39 @@ impl ShikaneState {
     }
 
     fn configure_next_profile(&mut self) -> Result<State, ShikaneError> {
-        let profile = match self.unchecked_profiles.pop() {
-            Some(profile) => {
-                trace!("Selected profile: {}", profile.name);
-                profile
-            }
-            None => {
-                warn!("No profiles matched the currently connected outputs");
-                if self.args.oneshot {
-                    self.backend.clean_up();
-                    return Ok(State::ShuttingDown);
+        loop {
+            let profile = match self.unchecked_profiles.pop() {
+                Some(profile) => {
+                    trace!("Selected profile: {}", profile.name);
+                    profile
                 }
-                return Ok(State::NoProfileApplied);
+                None => {
+                    warn!("No profiles matched the currently connected outputs");
+                    if self.args.oneshot {
+                        self.backend.clean_up();
+                        return Ok(State::ShuttingDown);
+                    }
+                    return Ok(State::NoProfileApplied);
+                }
+            };
+
+            let next_state = if self.args.skip_tests {
+                self.apply_profile(profile)
+            } else {
+                self.test_profile(profile)
+            };
+
+            // Destroy the possibly remaining ZwlrOutputConfigurationV1 if an error has occurred
+            if next_state.is_err() {
+                self.destroy_config();
             }
-        };
 
-        let next_state = if self.args.skip_tests {
-            self.apply_profile(profile)
-        } else {
-            self.test_profile(profile)
-        };
-
-        // Destroy the possibly remaining ZwlrOutputConfigurationV1 if an error has occurred
-        if next_state.is_err() {
-            self.destroy_config();
+            if let Err(err @ ShikaneError::ConfigurationError) = next_state {
+                warn!("{}", err);
+                continue;
+            }
+            return next_state;
         }
-
-        next_state
     }
 
     fn test_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
