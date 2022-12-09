@@ -32,6 +32,7 @@ enum State {
     ShuttingDown,
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Clone, Copy, Debug)]
 pub enum StateInput {
     OutputManagerDone,
