@@ -2,9 +2,9 @@ use std::fmt::Display;
 
 use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
-use crate::config::Profile;
 use crate::config::ShikaneConfig;
 use crate::error::ShikaneError;
+use crate::profile::Profile;
 
 use calloop::LoopSignal;
 #[allow(unused_imports)]

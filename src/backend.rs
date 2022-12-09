@@ -5,8 +5,8 @@ mod output_manager;
 mod output_mode;
 mod wl_registry;
 
-use crate::config::Mode;
 use crate::error::ShikaneError;
+use crate::profile::Mode;
 use crate::state::StateInput;
 
 use self::output_head::OutputHead;
