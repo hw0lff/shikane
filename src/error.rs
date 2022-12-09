@@ -3,7 +3,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum ShikaneError {
     #[error("Configuration: Cannot configure profile {0:?}")]
-    ConfigurationError(String),
+    Configuration(String),
     #[error("EventLoop: {0}")]
     EventLoop(#[from] ::calloop::error::Error),
     #[error("Io: {0}")]

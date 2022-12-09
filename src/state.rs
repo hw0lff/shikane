@@ -86,7 +86,7 @@ impl ShikaneState {
             let (head_id, output_head) = self
                 .backend
                 .match_head(&output.r#match)
-                .ok_or_else(|| ShikaneError::ConfigurationError(profile.name.clone()))?;
+                .ok_or_else(|| ShikaneError::Configuration(profile.name.clone()))?;
             trace!("Setting Head: {:?}", output_head.name);
             let head = self.backend.head_from_id(head_id.clone())?;
 
@@ -102,7 +102,7 @@ impl ShikaneState {
             let (mode_id, output_mode) = self
                 .backend
                 .match_mode(head_id, &output.mode)
-                .ok_or_else(|| ShikaneError::ConfigurationError(profile.name.clone()))?;
+                .ok_or_else(|| ShikaneError::Configuration(profile.name.clone()))?;
             trace!("Setting Mode: {:?}", output_mode);
             let mode = self.backend.mode_from_id(mode_id)?;
             opch.set_mode(&mode);
@@ -138,7 +138,7 @@ impl ShikaneState {
                 self.test_profile(profile)
             };
 
-            if let Err(err @ ShikaneError::ConfigurationError(_)) = next_state {
+            if let Err(err @ ShikaneError::Configuration(_)) = next_state {
                 warn!("{}", err);
                 continue;
             }
@@ -176,7 +176,7 @@ impl ShikaneState {
         debug!("Previous state: {}, input: {}", self.state, input);
         let next_state = match self.match_input(input) {
             Ok(s) => s,
-            Err(err @ ShikaneError::ConfigurationError(_)) => {
+            Err(err @ ShikaneError::Configuration(_)) => {
                 warn!("{}, Restarting", err);
                 State::StartingUp
             }
