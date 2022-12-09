@@ -4,12 +4,12 @@ use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::ShikaneConfig;
 use crate::error::ShikaneError;
+use crate::profile;
 use crate::profile::Profile;
 
 use calloop::LoopSignal;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
-use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
 
 #[derive(Debug)]
 pub struct ShikaneState {
@@ -58,63 +58,6 @@ impl ShikaneState {
         }
     }
 
-    fn match_profile(&self, profile: &Profile) -> bool {
-        if profile.outputs.len() != self.backend.output_heads.len() {
-            return false;
-        }
-
-        let mut matches: usize = 0;
-        'output_loop: for output in profile.outputs.iter() {
-            for head in self.backend.output_heads.values() {
-                if head.matches(&output.r#match) {
-                    matches += 1;
-                    continue 'output_loop;
-                }
-            }
-        }
-        self.backend.output_heads.len() == matches
-    }
-
-    fn configure_profile(
-        &mut self,
-        profile: &Profile,
-    ) -> Result<ZwlrOutputConfigurationV1, ShikaneError> {
-        let output_config = self.backend.create_configuration();
-        debug!("Configuring profile: {}", profile.name);
-
-        for output in profile.outputs.iter() {
-            let (head_id, output_head) = self
-                .backend
-                .match_head(&output.r#match)
-                .ok_or_else(|| ShikaneError::Configuration(profile.name.clone()))?;
-            trace!("Setting Head: {:?}", output_head.name);
-            let head = self.backend.head_from_id(head_id.clone())?;
-
-            // disable the head if is disabled in the config
-            if !output.enable {
-                output_config.disable_head(&head);
-                continue;
-            }
-
-            // enable the head and set its properties
-            let opch = output_config.enable_head(&head, &self.backend.qh, self.backend.data);
-            // Mode
-            let (mode_id, output_mode) = self
-                .backend
-                .match_mode(head_id, &output.mode)
-                .ok_or_else(|| ShikaneError::Configuration(profile.name.clone()))?;
-            trace!("Setting Mode: {:?}", output_mode);
-            let mode = self.backend.mode_from_id(mode_id)?;
-            opch.set_mode(&mode);
-
-            // Position
-            trace!("Setting position: {:?}", output.position);
-            opch.set_position(output.position.x, output.position.y);
-        }
-
-        Ok(output_config)
-    }
-
     fn configure_next_profile(&mut self) -> Result<State, ShikaneError> {
         loop {
             let profile = match self.unchecked_profiles.pop() {
@@ -147,13 +90,13 @@ impl ShikaneState {
     }
 
     fn test_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
-        let configuration = self.configure_profile(&profile)?;
+        let configuration = profile::configure_profile(&mut self.backend, &profile)?;
         configuration.test();
         Ok(State::TestingProfile(profile))
     }
 
     fn apply_profile(&mut self, profile: Profile) -> Result<State, ShikaneError> {
-        let configuration = self.configure_profile(&profile)?;
+        let configuration = profile::configure_profile(&mut self.backend, &profile)?;
         configuration.apply();
         Ok(State::ApplyingProfile(profile))
     }
@@ -163,7 +106,7 @@ impl ShikaneState {
             .config
             .profiles
             .iter()
-            .filter(|profile| self.match_profile(profile))
+            .filter(|profile| profile::match_profile(&self.backend, profile))
             .cloned()
             .collect()
     }
