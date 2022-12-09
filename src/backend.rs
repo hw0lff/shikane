@@ -30,6 +30,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 pub struct ShikaneBackend {
     pub output_manager_serial: u32,
     pub wlr_output_manager: Option<ZwlrOutputManagerV1>,
+    pub wlr_output_configuration: Option<ZwlrOutputConfigurationV1>,
     /// A Mapping from ZwlrOutputHeadV1-Ids to OutputHeads
     pub output_heads: HashMap<ObjectId, OutputHead>,
     /// A Mapping from ZwlrOutputModeV1-Ids to OutputModes
@@ -64,10 +65,21 @@ impl ShikaneBackend {
     }
 
     pub fn create_configuration(&mut self) -> ZwlrOutputConfigurationV1 {
-        self.wlr_output_manager
+        self.destroy_configuration();
+        let configuration = self
+            .wlr_output_manager
             .as_ref()
             .unwrap()
-            .create_configuration(self.output_manager_serial, &self.qh, self.data)
+            .create_configuration(self.output_manager_serial, &self.qh, self.data);
+        self.wlr_output_configuration = Some(configuration.clone());
+        configuration
+    }
+
+    pub fn destroy_configuration(&mut self) {
+        if let Some(config) = &self.wlr_output_configuration {
+            config.destroy();
+            self.wlr_output_configuration = None;
+        }
     }
 
     pub fn get_modes_of_head(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
@@ -135,6 +147,7 @@ impl ShikaneBackend {
             data: Default::default(),
             output_manager_serial: Default::default(),
             wlr_output_manager: Default::default(),
+            wlr_output_configuration: Default::default(),
             output_heads: Default::default(),
             output_modes: Default::default(),
             mode_id_head_id: Default::default(),
@@ -150,6 +163,7 @@ impl ShikaneBackend {
     }
 
     pub fn clean_up(&mut self) {
+        self.destroy_configuration();
         for (id, _) in self.output_modes.drain() {
             match mode_from_id(&self.connection, id) {
                 Ok(it) => it.release(),

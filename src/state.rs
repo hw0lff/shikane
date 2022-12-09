@@ -19,7 +19,6 @@ pub struct ShikaneState {
     loop_signal: LoopSignal,
     state: State,
     unchecked_profiles: Vec<Profile>,
-    output_config: Option<ZwlrOutputConfigurationV1>,
 }
 
 #[derive(Clone, Debug)]
@@ -56,14 +55,6 @@ impl ShikaneState {
             loop_signal,
             state: State::StartingUp,
             unchecked_profiles: Vec::new(),
-            output_config: None,
-        }
-    }
-
-    fn destroy_config(&mut self) {
-        if let Some(config) = &self.output_config {
-            config.destroy();
-            self.output_config = None;
         }
     }
 
@@ -89,7 +80,6 @@ impl ShikaneState {
         profile: &Profile,
     ) -> Result<ZwlrOutputConfigurationV1, ShikaneError> {
         let output_config = self.backend.create_configuration();
-        self.output_config = Some(output_config.clone());
         debug!("Configuring profile: {}", profile.name);
 
         for output in profile.outputs.iter() {
@@ -148,11 +138,6 @@ impl ShikaneState {
                 self.test_profile(profile)
             };
 
-            // Destroy the possibly remaining ZwlrOutputConfigurationV1 if an error has occurred
-            if next_state.is_err() {
-                self.destroy_config();
-            }
-
             if let Err(err @ ShikaneError::ConfigurationError) = next_state {
                 warn!("{}", err);
                 continue;
@@ -192,7 +177,6 @@ impl ShikaneState {
         let next_state = match self.match_input(input) {
             Ok(s) => s,
             Err(err @ ShikaneError::ConfigurationError) => {
-                self.destroy_config();
                 warn!("{}, Restarting", err);
                 State::StartingUp
             }
@@ -207,14 +191,6 @@ impl ShikaneState {
     }
 
     fn match_input(&mut self, input: StateInput) -> Result<State, ShikaneError> {
-        match input {
-            StateInput::OutputManagerDone => {}
-            StateInput::OutputManagerFinished => {}
-            StateInput::OutputConfigurationSucceeded => self.destroy_config(),
-            StateInput::OutputConfigurationFailed => self.destroy_config(),
-            StateInput::OutputConfigurationCancelled => self.destroy_config(),
-        };
-
         match (self.state.clone(), input) {
             (State::StartingUp, StateInput::OutputManagerDone) => {
                 // OutputManager sent all information about current configuration

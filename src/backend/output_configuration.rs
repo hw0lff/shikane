@@ -19,6 +19,7 @@ impl Dispatch<ZwlrOutputConfigurationV1, Data> for ShikaneBackend {
         _qhandle: &QueueHandle<Self>,
     ) {
         trace!("[Event] {:?}", event);
+        state.destroy_configuration();
         match event {
             OutputConfigurationEvent::Succeeded => {
                 state.send(StateInput::OutputConfigurationSucceeded);
