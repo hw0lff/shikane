@@ -190,6 +190,11 @@ impl ShikaneState {
         debug!("Previous state: {}, input: {}", self.state, input);
         let next_state = match self.match_input(input) {
             Ok(s) => s,
+            Err(err @ ShikaneError::ConfigurationError) => {
+                self.destroy_config();
+                warn!("{}, Restarting", err);
+                State::StartingUp
+            }
             Err(err) => {
                 error!("{}", err);
                 self.backend.clean_up();
