@@ -8,6 +8,7 @@ use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::Event as ZwlrOutputManagerEvent;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
+use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::EVT_HEAD_OPCODE;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
@@ -42,6 +43,6 @@ impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneBackend {
     }
 
     event_created_child!(ShikaneBackend, ZwlrOutputManagerV1, [
-        0 => (ZwlrOutputHeadV1, Data::default()),
+        EVT_HEAD_OPCODE=> (ZwlrOutputHeadV1, Data::default()),
     ]);
 }
