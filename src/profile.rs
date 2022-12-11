@@ -38,7 +38,7 @@ pub struct Profile {
     pub exec: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
     config_set: Vec<(Output, ZwlrOutputHeadV1, ZwlrOutputModeV1)>,

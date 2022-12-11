@@ -60,33 +60,25 @@ impl ShikaneState {
     }
 
     fn configure_next_plan(&mut self) -> Result<State, ShikaneError> {
-        loop {
-            let plan = match self.unchecked_plans.pop() {
-                Some(plan) => {
-                    trace!("Selected profile: {}", plan.profile.name);
-                    plan
-                }
-                None => {
-                    warn!("No profiles matched the currently connected outputs");
-                    if self.args.oneshot {
-                        self.backend.clean_up();
-                        return Ok(State::ShuttingDown);
-                    }
-                    return Ok(State::NoProfileApplied);
-                }
-            };
-
-            let next_state = if self.args.skip_tests {
-                self.apply_plan(plan)
-            } else {
-                self.test_plan(plan)
-            };
-
-            if let Err(err @ ShikaneError::Configuration(_)) = next_state {
-                warn!("{}", err);
-                continue;
+        let plan = match self.unchecked_plans.pop() {
+            Some(plan) => {
+                trace!("Selected profile: {}", plan.profile.name);
+                plan
             }
-            return next_state;
+            None => {
+                warn!("No profiles matched the currently connected outputs");
+                if self.args.oneshot {
+                    self.backend.clean_up();
+                    return Ok(State::ShuttingDown);
+                }
+                return Ok(State::NoProfileApplied);
+            }
+        };
+
+        if self.args.skip_tests {
+            self.apply_plan(plan)
+        } else {
+            self.test_plan(plan)
         }
     }
 
@@ -159,12 +151,30 @@ impl ShikaneState {
                 self.configure_next_plan()
             }
             (State::TestingProfile(plan), StateInput::OutputConfigurationCancelled) => {
-                // Cancelled means that we can try again
-                self.test_plan(plan)
+                // Cancelled means that we have outdated information
+                self.create_list_of_unchecked_plans();
+                // If the newly selected plan is the same as the one that is currently being tested
+                // then try testing the same plan again
+                if let Some(selected_plan) = self.unchecked_plans.first() {
+                    if *selected_plan == plan {
+                        return self.test_plan(plan);
+                    }
+                }
+                // Else configure the next plan
+                self.configure_next_plan()
             }
             (State::ApplyingProfile(plan), StateInput::OutputConfigurationCancelled) => {
-                // Cancelled means that we can try again
-                self.apply_plan(plan)
+                // Cancelled means that we have outdated information
+                self.create_list_of_unchecked_plans();
+                // If the newly selected plan is the same as the one that is currently being applied
+                // then try applying the same plan again
+                if let Some(selected_plan) = self.unchecked_plans.first() {
+                    if *selected_plan == plan {
+                        return self.apply_plan(plan);
+                    }
+                }
+                // Else configure the next plan
+                self.configure_next_plan()
             }
             (State::ProfileApplied(applied_plan), StateInput::OutputManagerDone) => {
                 // OutputManager sent new information about current configuration
@@ -172,7 +182,7 @@ impl ShikaneState {
                 // If the newly selected profile is the same as the one that is already applied
                 // then do nothing
                 if let Some(selected_plan) = self.unchecked_plans.first() {
-                    if selected_plan.profile == applied_plan.profile {
+                    if *selected_plan == applied_plan {
                         return Ok(State::ProfileApplied(applied_plan));
                     }
                 }
