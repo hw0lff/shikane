@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
 
@@ -66,7 +68,7 @@ impl ShikaneProfilePlan {
             let configuration_head = configuration.enable_head(head, &backend.qh, backend.data);
 
             // Mode
-            trace!("Setting Mode: {:?}", output.mode);
+            trace!("Setting Mode: {}", output.mode);
             configuration_head.set_mode(mode);
 
             // Position
@@ -125,4 +127,10 @@ pub fn create_profile_plans(
     }
 
     profile_plans
+}
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x{}@{}Hz", self.width, self.height, self.refresh)
+    }
 }
