@@ -72,7 +72,7 @@ impl ShikaneProfilePlan {
             configuration_head.set_mode(mode);
 
             // Position
-            trace!("Setting Position: {:?}", output.position);
+            trace!("Setting Position: {}", output.position);
             configuration_head.set_position(output.position.x, output.position.y);
         }
 
@@ -127,6 +127,12 @@ pub fn create_profile_plans(
     }
 
     profile_plans
+}
+
+impl Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
 }
 
 impl Display for Mode {
