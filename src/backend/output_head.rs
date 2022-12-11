@@ -1,3 +1,4 @@
+use super::OutputMode;
 use super::{Data, ShikaneBackend};
 
 use wayland_client::backend::ObjectId;
@@ -75,6 +76,7 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
                 trace!("[Event::Mode] id: {:?}", mode.id());
                 state.mode_id_head_id.insert(mode.id(), proxy.id());
                 head.modes.push(mode.id());
+                state.output_modes.insert(mode.id(), OutputMode::new(mode));
             }
             ZwlrOutputHeadEvent::Enabled { enabled } => {
                 head.enabled = !matches!(enabled, 0);

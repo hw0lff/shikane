@@ -7,12 +7,13 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct OutputMode {
     pub width: i32,
     pub height: i32,
     pub refresh: i32,
     pub preferred: bool,
+    pub wlr_mode: ZwlrOutputModeV1,
 }
 
 impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
@@ -29,7 +30,9 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
         match state.output_modes.get_mut(&proxy.id()) {
             Some(m) => mode = m,
             None => {
-                state.output_modes.insert(proxy.id(), OutputMode::default());
+                state
+                    .output_modes
+                    .insert(proxy.id(), OutputMode::new(proxy.clone()));
                 mode = state.output_modes.get_mut(&proxy.id()).unwrap();
             }
         };
@@ -66,6 +69,16 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
 }
 
 impl OutputMode {
+    pub fn new(wlr_mode: ZwlrOutputModeV1) -> Self {
+        Self {
+            width: Default::default(),
+            height: Default::default(),
+            refresh: Default::default(),
+            preferred: Default::default(),
+            wlr_mode,
+        }
+    }
+
     /// Returns [`true`] if the supplied parameters align with the parameters of the mode.
     /// `width` and `height` are in pixel, `refresh` is in Hz.
     pub fn matches2(&self, width: i32, height: i32, refresh: i32) -> bool {
