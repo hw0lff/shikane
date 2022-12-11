@@ -81,6 +81,23 @@ impl OutputMode {
         }
     }
 
+    /// `refresh` is in Hz
+    pub fn matches(&self, refresh: i32, delta: &mut i32) -> bool {
+        const MAX_DELTA: i32 = 500; // maximum difference in mHz
+        let refresh: i32 = refresh * 1000; // convert Hz to mHZ
+        let diff: i32 = refresh.abs_diff(self.refresh) as i32; // difference in mHz
+        trace!(
+            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
+            self.refresh
+        );
+
+        if diff < MAX_DELTA && diff < *delta {
+            *delta = diff;
+            return true;
+        }
+        false
+    }
+
     /// Returns [`true`] if the supplied parameters align with the parameters of the mode.
     /// `width` and `height` are in pixel, `refresh` is in Hz.
     pub fn matches2(&self, width: i32, height: i32, refresh: i32) -> bool {
