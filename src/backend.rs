@@ -91,6 +91,22 @@ impl ShikaneBackend {
         o_heads
     }
 
+    pub fn match_mode(&self, o_head: &OutputHead, mode: &Mode) -> Option<&OutputMode> {
+        let mut best = None;
+        let mut refresh_delta = i32::MAX; // in mHz
+        for wlr_mode_id in o_head.modes.iter() {
+            let o_mode = self.output_modes.get(wlr_mode_id)?;
+            if mode.width != o_mode.width || mode.height != o_mode.height {
+                continue;
+            }
+
+            if o_mode.matches(mode.refresh, &mut refresh_delta) {
+                best = Some(o_mode);
+            }
+        }
+        best
+    }
+
     pub fn get_modes_of_head2(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
         let head = &self.output_heads[id];
 
