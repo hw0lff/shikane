@@ -82,7 +82,7 @@ impl ShikaneBackend {
         }
     }
 
-    pub fn get_modes_of_head(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
+    pub fn get_modes_of_head2(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
         let head = &self.output_heads[id];
 
         head.modes
@@ -95,13 +95,13 @@ impl ShikaneBackend {
             .collect()
     }
 
-    pub fn match_mode(&self, id: &ObjectId, mode: &Mode) -> Option<(ObjectId, &OutputMode)> {
-        self.get_modes_of_head(id)
+    pub fn match_mode2(&self, id: &ObjectId, mode: &Mode) -> Option<(ObjectId, &OutputMode)> {
+        self.get_modes_of_head2(id)
             .into_iter()
-            .find(|(_id, output_mode)| output_mode.matches(mode.width, mode.height, mode.refresh))
+            .find(|(_id, output_mode)| output_mode.matches2(mode.width, mode.height, mode.refresh))
     }
 
-    pub fn match_head(&self, pat: &str) -> Option<(&ObjectId, &OutputHead)> {
+    pub fn match_head2(&self, pat: &str) -> Option<(&ObjectId, &OutputHead)> {
         self.output_heads.iter().find(|(_id, h)| h.matches(pat))
     }
 

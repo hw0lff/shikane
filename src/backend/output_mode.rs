@@ -68,7 +68,7 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
 impl OutputMode {
     /// Returns [`true`] if the supplied parameters align with the parameters of the mode.
     /// `width` and `height` are in pixel, `refresh` is in Hz.
-    pub fn matches(&self, width: i32, height: i32, refresh: i32) -> bool {
+    pub fn matches2(&self, width: i32, height: i32, refresh: i32) -> bool {
         // | refresh - monitor.refresh | * 100
         // ----------------------------------- < epsilon
         //               refresh

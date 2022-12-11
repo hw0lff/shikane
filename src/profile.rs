@@ -59,7 +59,7 @@ pub fn configure_profile(
 
     for output in profile.outputs.iter() {
         let (head_id, output_head) = backend
-            .match_head(&output.r#match)
+            .match_head2(&output.r#match)
             .ok_or_else(|| ShikaneError::Configuration(profile.name.clone()))?;
         trace!("Setting Head: {:?}", output_head.name);
         let head = backend.head_from_id(head_id.clone())?;
@@ -74,7 +74,7 @@ pub fn configure_profile(
         let opch = output_config.enable_head(&head, &backend.qh, backend.data);
         // Mode
         let (mode_id, output_mode) = backend
-            .match_mode(head_id, &output.mode)
+            .match_mode2(head_id, &output.mode)
             .ok_or_else(|| ShikaneError::Configuration(profile.name.clone()))?;
         trace!("Setting Mode: {:?}", output_mode);
         let mode = backend.mode_from_id(mode_id)?;
