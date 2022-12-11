@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::{Data, ShikaneBackend};
 
 use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
@@ -100,5 +102,11 @@ impl OutputMode {
             trace!("diff: {diff}mHz, ratio(diff,refresh): {p}%");
             p < EPSILON
         }
+    }
+}
+
+impl Display for OutputMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x{}@{}mHz", self.width, self.height, self.refresh)
     }
 }
