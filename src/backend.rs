@@ -82,6 +82,15 @@ impl ShikaneBackend {
         }
     }
 
+    pub fn match_heads(&self, pat: &str) -> Vec<&OutputHead> {
+        let o_heads: Vec<&OutputHead> = self
+            .output_heads
+            .iter()
+            .filter_map(|(_, h)| if h.matches(pat) { Some(h) } else { None })
+            .collect();
+        o_heads
+    }
+
     pub fn get_modes_of_head2(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
         let head = &self.output_heads[id];
 
