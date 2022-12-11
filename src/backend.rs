@@ -107,37 +107,6 @@ impl ShikaneBackend {
         best
     }
 
-    pub fn get_modes_of_head2(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
-        let head = &self.output_heads[id];
-
-        head.modes
-            .iter()
-            .filter_map(|id| {
-                self.output_modes
-                    .contains_key(id)
-                    .then_some((id.clone(), &self.output_modes[id]))
-            })
-            .collect()
-    }
-
-    pub fn match_mode2(&self, id: &ObjectId, mode: &Mode) -> Option<(ObjectId, &OutputMode)> {
-        self.get_modes_of_head2(id)
-            .into_iter()
-            .find(|(_id, output_mode)| output_mode.matches2(mode.width, mode.height, mode.refresh))
-    }
-
-    pub fn match_head2(&self, pat: &str) -> Option<(&ObjectId, &OutputHead)> {
-        self.output_heads.iter().find(|(_id, h)| h.matches(pat))
-    }
-
-    pub fn mode_from_id(&self, id: ObjectId) -> Result<ZwlrOutputModeV1, ShikaneError> {
-        mode_from_id(&self.connection, id)
-    }
-
-    pub fn head_from_id(&self, id: ObjectId) -> Result<ZwlrOutputHeadV1, ShikaneError> {
-        head_from_id(&self.connection, id)
-    }
-
     /// After received the Finished event for a ZwlrOutputModeV1 the mode must not be used anymore.
     /// This function removes all occurences of the provided ObjectId of the mode in ShikaneState.
     fn remove_mode(&mut self, id: ObjectId) -> Result<(), ShikaneError> {
