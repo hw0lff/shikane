@@ -16,6 +16,6 @@ pub struct ShikaneArgs {
     pub oneshot: bool,
 
     /// Apply profiles untested
-    #[clap(short, long)]
+    #[clap(short, long, parse(try_from_str), default_value = "true", hide = true)]
     pub skip_tests: bool,
 }
