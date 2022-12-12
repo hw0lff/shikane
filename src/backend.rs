@@ -5,8 +5,8 @@ mod output_manager;
 mod output_mode;
 mod wl_registry;
 
-use crate::config::Mode;
 use crate::error::ShikaneError;
+use crate::profile::Mode;
 use crate::state::StateInput;
 
 use self::output_head::OutputHead;
@@ -82,35 +82,29 @@ impl ShikaneBackend {
         }
     }
 
-    pub fn get_modes_of_head(&self, id: &ObjectId) -> Vec<(ObjectId, &OutputMode)> {
-        let head = &self.output_heads[id];
-
-        head.modes
+    pub fn match_heads(&self, pat: &str) -> Vec<&OutputHead> {
+        let o_heads: Vec<&OutputHead> = self
+            .output_heads
             .iter()
-            .filter_map(|id| {
-                self.output_modes
-                    .contains_key(id)
-                    .then_some((id.clone(), &self.output_modes[id]))
-            })
-            .collect()
+            .filter_map(|(_, h)| if h.matches(pat) { Some(h) } else { None })
+            .collect();
+        o_heads
     }
 
-    pub fn match_mode(&self, id: &ObjectId, mode: &Mode) -> Option<(ObjectId, &OutputMode)> {
-        self.get_modes_of_head(id)
-            .into_iter()
-            .find(|(_id, output_mode)| output_mode.matches(mode.width, mode.height, mode.refresh))
-    }
+    pub fn match_mode(&self, o_head: &OutputHead, mode: &Mode) -> Option<&OutputMode> {
+        let mut best = None;
+        let mut refresh_delta = i32::MAX; // in mHz
+        for wlr_mode_id in o_head.modes.iter() {
+            let o_mode = self.output_modes.get(wlr_mode_id)?;
+            if mode.width != o_mode.width || mode.height != o_mode.height {
+                continue;
+            }
 
-    pub fn match_head(&self, pat: &str) -> Option<(&ObjectId, &OutputHead)> {
-        self.output_heads.iter().find(|(_id, h)| h.matches(pat))
-    }
-
-    pub fn mode_from_id(&self, id: ObjectId) -> Result<ZwlrOutputModeV1, ShikaneError> {
-        mode_from_id(&self.connection, id)
-    }
-
-    pub fn head_from_id(&self, id: ObjectId) -> Result<ZwlrOutputHeadV1, ShikaneError> {
-        head_from_id(&self.connection, id)
+            if o_mode.matches(mode.refresh, &mut refresh_delta) {
+                best = Some(o_mode);
+            }
+        }
+        best
     }
 
     /// After received the Finished event for a ZwlrOutputModeV1 the mode must not be used anymore.

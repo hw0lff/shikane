@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use super::{Data, ShikaneBackend};
 
 use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
@@ -7,12 +9,13 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct OutputMode {
     pub width: i32,
     pub height: i32,
     pub refresh: i32,
     pub preferred: bool,
+    pub wlr_mode: ZwlrOutputModeV1,
 }
 
 impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
@@ -29,7 +32,9 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
         match state.output_modes.get_mut(&proxy.id()) {
             Some(m) => mode = m,
             None => {
-                state.output_modes.insert(proxy.id(), OutputMode::default());
+                state
+                    .output_modes
+                    .insert(proxy.id(), OutputMode::new(proxy.clone()));
                 mode = state.output_modes.get_mut(&proxy.id()).unwrap();
             }
         };
@@ -66,26 +71,36 @@ impl Dispatch<ZwlrOutputModeV1, Data> for ShikaneBackend {
 }
 
 impl OutputMode {
-    /// Returns [`true`] if the supplied parameters align with the parameters of the mode.
-    /// `width` and `height` are in pixel, `refresh` is in Hz.
-    pub fn matches(&self, width: i32, height: i32, refresh: i32) -> bool {
-        // | refresh - monitor.refresh | * 100
-        // ----------------------------------- < epsilon
-        //               refresh
-        self.width == width && self.height == height && {
-            const EPSILON: f32 = 0.2; // maximum relative difference in %
-            let refresh: i32 = refresh * 1000; // convert Hz to mHZ
-            trace!(
-                "refresh: {}mHz, monitor.refresh {}mHz",
-                refresh,
-                self.refresh
-            );
-            let diff: i32 = refresh.abs_diff(self.refresh) as i32; // difference in mHz
-
-            // times 100 to calculate in %
-            let p: f32 = (diff * 100) as f32 / refresh as f32; // relative difference in %
-            trace!("diff: {diff}mHz, ratio(diff,refresh): {p}%");
-            p < EPSILON
+    pub fn new(wlr_mode: ZwlrOutputModeV1) -> Self {
+        Self {
+            width: Default::default(),
+            height: Default::default(),
+            refresh: Default::default(),
+            preferred: Default::default(),
+            wlr_mode,
         }
+    }
+
+    /// `refresh` is in Hz
+    pub fn matches(&self, refresh: i32, delta: &mut i32) -> bool {
+        const MAX_DELTA: i32 = 500; // maximum difference in mHz
+        let refresh: i32 = refresh * 1000; // convert Hz to mHZ
+        let diff: i32 = refresh.abs_diff(self.refresh) as i32; // difference in mHz
+        trace!(
+            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
+            self.refresh
+        );
+
+        if diff < MAX_DELTA && diff < *delta {
+            *delta = diff;
+            return true;
+        }
+        false
+    }
+}
+
+impl Display for OutputMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x{}@{}mHz", self.width, self.height, self.refresh)
     }
 }

@@ -2,6 +2,7 @@ mod args;
 mod backend;
 mod config;
 mod error;
+mod profile;
 mod state;
 use backend::ShikaneBackend;
 use clap::Parser;

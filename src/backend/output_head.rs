@@ -1,3 +1,4 @@
+use super::OutputMode;
 use super::{Data, ShikaneBackend};
 
 use wayland_client::backend::ObjectId;
@@ -13,7 +14,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct OutputHead {
     pub name: String,
     pub description: String,
@@ -29,6 +30,7 @@ pub struct OutputHead {
     pub make: String,
     pub model: String,
     pub serial_number: String,
+    pub wlr_head: ZwlrOutputHeadV1,
 }
 
 impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
@@ -45,7 +47,9 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
         match state.output_heads.get_mut(&proxy.id()) {
             Some(m) => head = m,
             None => {
-                state.output_heads.insert(proxy.id(), OutputHead::default());
+                state
+                    .output_heads
+                    .insert(proxy.id(), OutputHead::new(proxy.clone()));
                 head = state.output_heads.get_mut(&proxy.id()).unwrap();
             }
         };
@@ -72,6 +76,7 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
                 trace!("[Event::Mode] id: {:?}", mode.id());
                 state.mode_id_head_id.insert(mode.id(), proxy.id());
                 head.modes.push(mode.id());
+                state.output_modes.insert(mode.id(), OutputMode::new(mode));
             }
             ZwlrOutputHeadEvent::Enabled { enabled } => {
                 head.enabled = !matches!(enabled, 0);
@@ -133,6 +138,25 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
 }
 
 impl OutputHead {
+    pub fn new(wlr_head: ZwlrOutputHeadV1) -> Self {
+        Self {
+            name: Default::default(),
+            description: Default::default(),
+            physical_width: Default::default(),
+            physical_height: Default::default(),
+            modes: Default::default(),
+            enabled: Default::default(),
+            current_mode: Default::default(),
+            position_x: Default::default(),
+            position_y: Default::default(),
+            transform: Default::default(),
+            scale: Default::default(),
+            make: Default::default(),
+            model: Default::default(),
+            serial_number: Default::default(),
+            wlr_head,
+        }
+    }
     pub fn matches(&self, pat: &str) -> bool {
         self.name == pat || self.make == pat || self.model == pat
     }
