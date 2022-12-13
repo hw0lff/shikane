@@ -29,8 +29,8 @@ pub struct Mode {
 pub struct Output {
     pub enable: bool,
     pub r#match: String,
-    pub mode: Mode,
     pub position: Position,
+    pub mode: Option<Mode>,
 }
 #[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
 pub struct Profile {
@@ -43,7 +43,7 @@ pub struct Profile {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
-    config_set: Vec<(Output, ZwlrOutputHeadV1, ZwlrOutputModeV1)>,
+    config_set: Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)>,
 }
 
 impl ShikaneProfilePlan {
@@ -54,24 +54,32 @@ impl ShikaneProfilePlan {
         let configuration = backend.create_configuration();
         debug!("Configuring profile: {}", self.profile.name);
 
-        for (output, head, mode) in self.config_set.iter() {
-            // Cannot configure a head or a mode that is not alive
-            if !head.is_alive() || !mode.is_alive() {
+        for (output, wlr_head, wlr_mode) in self.config_set.iter() {
+            // Cannot configure a head that is not alive
+            if !wlr_head.is_alive() {
                 return Err(ShikaneError::Configuration(self.profile.name.clone()));
             }
 
             // Disable the head if is disabled in the config
             if !output.enable {
-                configuration.disable_head(head);
+                configuration.disable_head(wlr_head);
                 continue;
             }
 
             // Enable the head and set its properties
-            let configuration_head = configuration.enable_head(head, &backend.qh, backend.data);
+            let configuration_head = configuration.enable_head(wlr_head, &backend.qh, backend.data);
 
             // Mode
-            trace!("Setting Mode: {}", output.mode);
-            configuration_head.set_mode(mode);
+            if let Some(mode) = &output.mode {
+                if let Some(wlr_mode) = wlr_mode {
+                    // Cannot configure a mode that is not alive
+                    if !wlr_mode.is_alive() {
+                        return Err(ShikaneError::Configuration(self.profile.name.clone()));
+                    }
+                    trace!("Setting Mode: {}", mode);
+                    configuration_head.set_mode(wlr_mode);
+                }
+            }
 
             // Position
             trace!("Setting Position: {}", output.position);
@@ -103,20 +111,22 @@ pub fn create_profile_plans(
                     continue 'heads;
                 }
 
-                if let Some(o_mode) = backend.match_mode(o_head, &output.mode) {
-                    trace!(
-                        "[Head Matched] match: {}, head.name: {}, mode: {}",
-                        output.r#match,
-                        o_head.name,
-                        o_mode
-                    );
-                    config_set.push((
-                        output.clone(),
-                        o_head.wlr_head.clone(),
-                        o_mode.wlr_mode.clone(),
-                    ));
-                    continue 'outputs;
+                let mut mode_trace = String::new();
+                let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
+                if let Some(mode) = &output.mode {
+                    if let Some(o_mode) = backend.match_mode(o_head, mode) {
+                        mode_trace = format!(", mode {}", o_mode);
+                        wlr_mode = Some(o_mode.wlr_mode.clone());
+                    }
                 }
+
+                trace!(
+                    "[Head Matched] match: {}, head.name: {}{mode_trace}",
+                    output.r#match,
+                    o_head.name,
+                );
+                config_set.push((output.clone(), o_head.wlr_head.clone(), wlr_mode));
+                continue 'outputs;
             }
         }
 
