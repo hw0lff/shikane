@@ -103,6 +103,8 @@ pub fn create_profile_plans(
             continue;
         }
 
+        trace!("[Profile] {}", profile.name);
+
         let mut config_set = vec![];
         'outputs: for output in profile.outputs.iter() {
             'heads: for o_head in backend.match_heads(output) {
