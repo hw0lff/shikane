@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use crate::backend::output_mode::OutputMode;
 use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
 
@@ -127,6 +128,24 @@ pub fn create_profile_plans(
     }
 
     profile_plans
+}
+
+impl Mode {
+    pub fn matches(&self, o_mode: &OutputMode, delta: &mut i32) -> bool {
+        const MAX_DELTA: i32 = 500; // maximum difference in mHz
+        let refresh: i32 = self.refresh * 1000; // convert Hz to mHZ
+        let diff: i32 = refresh.abs_diff(o_mode.refresh) as i32; // difference in mHz
+        trace!(
+            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
+            o_mode.refresh
+        );
+
+        if diff < MAX_DELTA && diff < *delta {
+            *delta = diff;
+            return true;
+        }
+        false
+    }
 }
 
 impl Display for Position {

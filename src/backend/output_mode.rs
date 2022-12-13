@@ -80,23 +80,6 @@ impl OutputMode {
             wlr_mode,
         }
     }
-
-    /// `refresh` is in Hz
-    pub fn matches(&self, refresh: i32, delta: &mut i32) -> bool {
-        const MAX_DELTA: i32 = 500; // maximum difference in mHz
-        let refresh: i32 = refresh * 1000; // convert Hz to mHZ
-        let diff: i32 = refresh.abs_diff(self.refresh) as i32; // difference in mHz
-        trace!(
-            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
-            self.refresh
-        );
-
-        if diff < MAX_DELTA && diff < *delta {
-            *delta = diff;
-            return true;
-        }
-        false
-    }
 }
 
 impl Display for OutputMode {

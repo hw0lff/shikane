@@ -2,7 +2,7 @@ mod output_configuration;
 mod output_configuration_head;
 mod output_head;
 mod output_manager;
-mod output_mode;
+pub mod output_mode;
 mod wl_registry;
 
 use crate::error::ShikaneError;
@@ -100,7 +100,7 @@ impl ShikaneBackend {
                 continue;
             }
 
-            if o_mode.matches(mode.refresh, &mut refresh_delta) {
+            if mode.matches(o_mode, &mut refresh_delta) {
                 best = Some(o_mode);
             }
         }
