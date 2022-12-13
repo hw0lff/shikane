@@ -29,8 +29,8 @@ pub struct Mode {
 pub struct Output {
     pub enable: bool,
     pub r#match: String,
-    pub position: Position,
     pub mode: Option<Mode>,
+    pub position: Option<Position>,
 }
 #[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
 pub struct Profile {
@@ -82,8 +82,10 @@ impl ShikaneProfilePlan {
             }
 
             // Position
-            trace!("Setting Position: {}", output.position);
-            configuration_head.set_position(output.position.x, output.position.y);
+            if let Some(pos) = &output.position {
+                trace!("Setting Position: {}", pos);
+                configuration_head.set_position(pos.x, pos.y);
+            }
         }
 
         Ok(configuration)
