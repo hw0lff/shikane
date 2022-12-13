@@ -157,7 +157,4 @@ impl OutputHead {
             wlr_head,
         }
     }
-    pub fn matches(&self, pat: &str) -> bool {
-        self.name == pat || self.make == pat || self.model == pat
-    }
 }

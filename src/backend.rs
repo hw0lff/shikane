@@ -1,12 +1,13 @@
 mod output_configuration;
 mod output_configuration_head;
-mod output_head;
+pub mod output_head;
 mod output_manager;
 pub mod output_mode;
 mod wl_registry;
 
 use crate::error::ShikaneError;
 use crate::profile::Mode;
+use crate::profile::Output;
 use crate::state::StateInput;
 
 use self::output_head::OutputHead;
@@ -82,11 +83,11 @@ impl ShikaneBackend {
         }
     }
 
-    pub fn match_heads(&self, pat: &str) -> Vec<&OutputHead> {
+    pub fn match_heads(&self, output: &Output) -> Vec<&OutputHead> {
         let o_heads: Vec<&OutputHead> = self
             .output_heads
             .iter()
-            .filter_map(|(_, h)| if h.matches(pat) { Some(h) } else { None })
+            .filter_map(|(_, h)| if output.matches(h) { Some(h) } else { None })
             .collect();
         o_heads
     }

@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use crate::backend::output_head::OutputHead;
 use crate::backend::output_mode::OutputMode;
 use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
@@ -94,7 +95,7 @@ pub fn create_profile_plans(
 
         let mut config_set = vec![];
         'outputs: for output in profile.outputs.iter() {
-            'heads: for o_head in backend.match_heads(&output.r#match) {
+            'heads: for o_head in backend.match_heads(output) {
                 // If the head has already been added to the config_set then skip it and look at
                 // the next one
                 if config_set.iter().any(|(_, wh, _)| *wh == o_head.wlr_head) {
@@ -145,6 +146,12 @@ impl Mode {
             return true;
         }
         false
+    }
+}
+
+impl Output {
+    pub fn matches(&self, o_head: &OutputHead) -> bool {
+        o_head.name == self.r#match || o_head.make == self.r#match || o_head.model == self.r#match
     }
 }
 
