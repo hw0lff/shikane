@@ -25,14 +25,15 @@ pub struct Mode {
     pub height: i32,
     pub refresh: i32,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Output {
     pub enable: bool,
     pub r#match: String,
     pub mode: Option<Mode>,
     pub position: Option<Position>,
+    pub scale: Option<f64>,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Profile {
     pub name: String,
     #[serde(rename = "output")]
@@ -40,7 +41,7 @@ pub struct Profile {
     pub exec: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
     config_set: Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)>,
@@ -85,6 +86,12 @@ impl ShikaneProfilePlan {
             if let Some(pos) = &output.position {
                 trace!("Setting Position: {}", pos);
                 configuration_head.set_position(pos.x, pos.y);
+            }
+
+            // Scale
+            if let Some(scale) = &output.scale {
+                trace!("Setting Scale: {}", scale);
+                configuration_head.set_scale(*scale);
             }
         }
 
