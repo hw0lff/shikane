@@ -20,11 +20,11 @@ pub struct Position {
     pub x: i32,
     pub y: i32,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Mode {
     pub width: i32,
     pub height: i32,
-    pub refresh: i32,
+    pub refresh: f32,
 }
 #[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Output {
@@ -164,7 +164,7 @@ pub fn create_profile_plans(
 impl Mode {
     pub fn matches(&self, o_mode: &OutputMode, delta: &mut i32) -> bool {
         const MAX_DELTA: i32 = 500; // maximum difference in mHz
-        let refresh: i32 = self.refresh * 1000; // convert Hz to mHZ
+        let refresh: i32 = self.refresh_m_hz();
         let diff: i32 = refresh.abs_diff(o_mode.refresh) as i32; // difference in mHz
         trace!(
             "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
@@ -176,6 +176,17 @@ impl Mode {
             return true;
         }
         false
+    }
+
+    /// Returns the refresh rate in mHz
+    pub fn refresh_m_hz(&self) -> i32 {
+        // convert Hz to mHZ and cut the decimals off
+        //
+        // self.refresh = 59.992_345f32  Hz
+        // (_) * 1000.0 = 59_992.345f32 mHz
+        // (_).trunc()  = 59_992.0f32   mHz
+        // (_) as i32   = 59_992i32     mHz
+        (self.refresh * 1000.0).trunc() as i32
     }
 }
 
