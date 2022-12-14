@@ -119,7 +119,7 @@ pub fn create_profile_plans(
             continue;
         }
 
-        trace!("[Profile] {}", profile.name);
+        trace!("[Considering Profile] {}", profile.name);
 
         let mut config_set = vec![];
         'outputs: for output in profile.outputs.iter() {
@@ -151,6 +151,7 @@ pub fn create_profile_plans(
         }
 
         if config_set.len() == profile.outputs.len() {
+            trace!("[Profile added to list] {}", profile.name);
             profile_plans.push(ShikaneProfilePlan {
                 profile: profile.clone(),
                 config_set,
