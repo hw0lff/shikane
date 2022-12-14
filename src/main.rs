@@ -2,6 +2,7 @@ mod args;
 mod backend;
 mod config;
 mod error;
+mod hk;
 mod profile;
 mod state;
 use backend::ShikaneBackend;
