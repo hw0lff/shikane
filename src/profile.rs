@@ -25,6 +25,8 @@ pub struct Mode {
     pub width: i32,
     pub height: i32,
     pub refresh: f32,
+    #[serde(default)]
+    pub custom: bool,
 }
 #[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Output {
@@ -75,7 +77,14 @@ impl ShikaneProfilePlan {
 
             // Mode
             if let Some(mode) = &output.mode {
-                if let Some(wlr_mode) = wlr_mode {
+                if mode.custom {
+                    trace!("Setting Mode: custom({})", mode);
+                    configuration_head.set_custom_mode(
+                        mode.width,
+                        mode.height,
+                        mode.refresh_m_hz(),
+                    );
+                } else if let Some(wlr_mode) = wlr_mode {
                     // Cannot configure a mode that is not alive
                     if !wlr_mode.is_alive() {
                         return Err(ShikaneError::Configuration(self.profile.name.clone()));
