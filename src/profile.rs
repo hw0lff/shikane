@@ -6,6 +6,7 @@ use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
 
 use serde::Deserialize;
+use wayland_client::protocol::wl_output::Transform;
 use wayland_client::Proxy;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
@@ -32,6 +33,8 @@ pub struct Output {
     pub mode: Option<Mode>,
     pub position: Option<Position>,
     pub scale: Option<f64>,
+    #[serde(default, with = "option_transform")]
+    pub transform: Option<Transform>,
 }
 #[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Profile {
@@ -92,6 +95,12 @@ impl ShikaneProfilePlan {
             if let Some(scale) = &output.scale {
                 trace!("Setting Scale: {}", scale);
                 configuration_head.set_scale(*scale);
+            }
+
+            // Transform
+            if let Some(transform) = &output.transform {
+                trace!("Setting Transform: {}", display_transform(transform));
+                configuration_head.set_transform(*transform);
             }
         }
 
@@ -186,4 +195,60 @@ impl Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}x{}@{}Hz", self.width, self.height, self.refresh)
     }
+}
+
+// `Transform` helpers
+#[derive(Deserialize)]
+#[serde(remote = "Transform")]
+#[repr(u32)]
+#[non_exhaustive]
+enum TransformDef {
+    #[serde(rename = "normal")]
+    Normal,
+    #[serde(rename = "90")]
+    _90,
+    #[serde(rename = "180")]
+    _180,
+    #[serde(rename = "270")]
+    _270,
+    #[serde(rename = "flipped")]
+    Flipped,
+    #[serde(rename = "flipped-90")]
+    Flipped90,
+    #[serde(rename = "flipped-180")]
+    Flipped180,
+    #[serde(rename = "flipped-270")]
+    Flipped270,
+}
+
+mod option_transform {
+    use super::{Transform, TransformDef};
+    use serde::{Deserialize, Deserializer};
+
+    // see https://github.com/serde-rs/serde/issues/1301#issuecomment-394108486
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Transform>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper(#[serde(with = "TransformDef")] Transform);
+
+        let helper = Option::deserialize(deserializer)?;
+        Ok(helper.map(|Helper(external)| external))
+    }
+}
+
+fn display_transform(t: &Transform) -> String {
+    match t {
+        Transform::Normal => "normal",
+        Transform::_90 => "90",
+        Transform::_180 => "180",
+        Transform::_270 => "270",
+        Transform::Flipped => "flipped",
+        Transform::Flipped90 => "flipped-90",
+        Transform::Flipped180 => "flipped-180",
+        Transform::Flipped270 => "flipped-270",
+        _ => "",
+    }
+    .to_string()
 }
