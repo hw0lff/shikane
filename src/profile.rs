@@ -4,6 +4,7 @@ use crate::backend::output_head::OutputHead;
 use crate::backend::output_mode::OutputMode;
 use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
+use crate::hk::HKMap;
 
 use serde::Deserialize;
 use wayland_client::protocol::wl_output::Transform;
@@ -130,18 +131,16 @@ pub fn create_profile_plans(
 
         trace!("[Considering Profile] {}", profile.name);
 
-        let mut config_set = vec![];
-        'outputs: for output in profile.outputs.iter() {
-            'heads: for o_head in backend.match_heads(output) {
-                // If the head has already been added to the config_set then skip it and look at
-                // the next one
-                if config_set.iter().any(|(_, wh, _)| *wh == o_head.wlr_head) {
-                    trace!("[Skip Head] {}", o_head.name);
-                    continue 'heads;
-                }
+        let matchings =
+            HKMap::new(&profile.outputs, backend).create_hk_matchings(&profile.outputs, backend);
 
+        let config_set: Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)> = matchings
+            .iter()
+            .cloned()
+            .map(|(output, o_head)| {
                 let mut mode_trace = String::new();
                 let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
+
                 if let Some(mode) = &output.mode {
                     if let Some(o_mode) = backend.match_mode(o_head, mode) {
                         mode_trace = format!(", mode {}", o_mode);
@@ -154,10 +153,10 @@ pub fn create_profile_plans(
                     output.r#match,
                     o_head.name,
                 );
-                config_set.push((output.clone(), o_head.wlr_head.clone(), wlr_mode));
-                continue 'outputs;
-            }
-        }
+
+                (output.clone(), o_head.wlr_head.clone(), wlr_mode)
+            })
+            .collect();
 
         if config_set.len() == profile.outputs.len() {
             trace!("[Profile added to list] {}", profile.name);
