@@ -217,7 +217,32 @@ impl Mode {
 
 impl Output {
     pub fn matches(&self, o_head: &OutputHead) -> bool {
-        o_head.name == self.r#match || o_head.make == self.r#match || o_head.model == self.r#match
+        o_head.name == self.r#match
+            || o_head.make == self.r#match
+            || o_head.model == self.r#match
+            || regex::regex(&self.r#match, o_head)
+    }
+}
+
+mod regex {
+    use super::OutputHead;
+
+    pub fn regex(re: &str, o_head: &OutputHead) -> bool {
+        let t = format!(
+            "{}|{}|{}|{}|{}",
+            o_head.name, o_head.make, o_head.model, o_head.serial_number, o_head.description
+        );
+        match regex::Regex::new(re) {
+            Ok(regex) if regex.is_match(&t) => {
+                log::debug!("[Matched] \"{:?}\" {t:?}", regex);
+                return true;
+            }
+            Ok(regex) => {
+                log::debug!("[Does not match] \"{:?}\" {t:?}", regex);
+            }
+            Err(err) => log::warn!("[Error] {}", err),
+        }
+        false
     }
 }
 

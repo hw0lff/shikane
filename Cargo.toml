@@ -9,6 +9,7 @@ clap = { version = "3.2.23", features = ["derive"] }
 env_logger = "0.10.0"
 hopcroft-karp = "0.2.1"
 log = "0.4.17"
+regex = "1.7.0"
 serde = { version = "1.0.150", features = ["derive"] }
 thiserror = "1.0.37"
 toml = { version = "0.5.9", features = ["preserve_order"] }

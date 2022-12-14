@@ -499,6 +499,7 @@ dependencies = [
  "env_logger",
  "hopcroft-karp",
  "log",
+ "regex",
  "serde",
  "thiserror",
  "toml",
