@@ -131,32 +131,19 @@ pub fn create_profile_plans(
 
         trace!("[Considering Profile] {}", profile.name);
 
-        let matchings =
-            HKMap::new(&profile.outputs, backend).create_hk_matchings(&profile.outputs, backend);
+        let o_heads = backend.heads();
 
-        let config_set: Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)> = matchings
-            .iter()
-            .cloned()
-            .map(|(output, o_head)| {
-                let mut mode_trace = String::new();
-                let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
-
-                if let Some(mode) = &output.mode {
-                    if let Some(o_mode) = backend.match_mode(o_head, mode) {
-                        mode_trace = format!(", mode {}", o_mode);
-                        wlr_mode = Some(o_mode.wlr_mode.clone());
-                    }
+        let mut edges = vec![];
+        for output in profile.outputs.iter() {
+            for o_head in o_heads.iter() {
+                if output.matches(o_head) {
+                    edges.push((output, *o_head));
                 }
+            }
+        }
 
-                trace!(
-                    "[Head Matched] match: {}, head.name: {}{mode_trace}",
-                    output.r#match,
-                    o_head.name,
-                );
-
-                (output.clone(), o_head.wlr_head.clone(), wlr_mode)
-            })
-            .collect();
+        let matchings = HKMap::new(&profile.outputs, &o_heads).create_hk_matchings(&edges);
+        let config_set = create_config_set(matchings, backend);
 
         if config_set.len() == profile.outputs.len() {
             trace!("[Profile added to list] {}", profile.name);
@@ -168,6 +155,35 @@ pub fn create_profile_plans(
     }
 
     profile_plans
+}
+
+fn create_config_set(
+    matchings: Vec<(&Output, &OutputHead)>,
+    backend: &ShikaneBackend,
+) -> Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)> {
+    matchings
+        .iter()
+        .cloned()
+        .map(|(output, o_head)| {
+            let mut mode_trace = String::new();
+            let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
+
+            if let Some(mode) = &output.mode {
+                if let Some(o_mode) = backend.match_mode(o_head, mode) {
+                    mode_trace = format!(", mode {}", o_mode);
+                    wlr_mode = Some(o_mode.wlr_mode.clone());
+                }
+            }
+
+            trace!(
+                "[Head Matched] match: {}, head.name: {}{mode_trace}",
+                output.r#match,
+                o_head.name,
+            );
+
+            (output.clone(), o_head.wlr_head.clone(), wlr_mode)
+        })
+        .collect()
 }
 
 impl Mode {

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use crate::backend::output_head::OutputHead;
-use crate::backend::ShikaneBackend;
 use crate::profile::Output;
 
 use hopcroft_karp as hk;
@@ -29,14 +28,14 @@ pub struct HKMap<'a, 'b> {
 }
 
 impl<'a, 'b> HKMap<'a, 'b> {
-    pub fn new(outputs: &'a [Output], backend: &'b ShikaneBackend) -> Self {
+    pub fn new(outputs: &'a [Output], o_heads: &[&'b OutputHead]) -> Self {
         // maps positive integers to Output
         let mapping_output: HashMap<isize, &Output> =
             (1..=isize::MAX).zip(outputs.iter()).collect();
         // maps negative integers to OutputHead
         let mapping_head: HashMap<isize, &OutputHead> = (isize::MIN..=-1)
             .rev()
-            .zip(backend.output_heads.iter().map(|(_, o_head)| o_head))
+            .zip(o_heads.iter().copied())
             .collect();
 
         Self {
@@ -48,19 +47,15 @@ impl<'a, 'b> HKMap<'a, 'b> {
 
     pub fn create_hk_matchings(
         &mut self,
-        outputs: &'a [Output],
-        backend: &'b ShikaneBackend,
+        edges: &[(&'a Output, &'b OutputHead)],
     ) -> Vec<(&'a Output, &'b OutputHead)> {
-        // Create the edges
-        for next_o in outputs.iter() {
-            for next_h in backend.match_heads(next_o).iter() {
-                // p .. positive
-                if let Some((&p, _)) = self.mapping_output.iter().find(|(_, o)| next_o == **o) {
-                    // n .. negative
-                    if let Some((&n, _)) = self.mapping_head.iter().find(|(_, h)| next_h == *h) {
-                        self.hk_edges.push((p, n));
-                    };
-                }
+        for (next_o, next_h) in edges {
+            // p .. positive
+            if let Some((&p, _)) = self.mapping_output.iter().find(|(_, o)| next_o == *o) {
+                // n .. negative
+                if let Some((&n, _)) = self.mapping_head.iter().find(|(_, h)| next_h == *h) {
+                    self.hk_edges.push((p, n));
+                };
             }
         }
 
