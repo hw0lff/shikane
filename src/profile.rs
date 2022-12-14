@@ -1,9 +1,12 @@
 use std::fmt::Display;
 
+use crate::backend::output_head::OutputHead;
+use crate::backend::output_mode::OutputMode;
 use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
 
 use serde::Deserialize;
+use wayland_client::protocol::wl_output::Transform;
 use wayland_client::Proxy;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
@@ -17,20 +20,25 @@ pub struct Position {
     pub x: i32,
     pub y: i32,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Mode {
     pub width: i32,
     pub height: i32,
-    pub refresh: i32,
+    pub refresh: f32,
+    #[serde(default)]
+    pub custom: bool,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Output {
     pub enable: bool,
     pub r#match: String,
-    pub mode: Mode,
-    pub position: Position,
+    pub mode: Option<Mode>,
+    pub position: Option<Position>,
+    pub scale: Option<f64>,
+    #[serde(default, with = "option_transform")]
+    pub transform: Option<Transform>,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Profile {
     pub name: String,
     #[serde(rename = "output")]
@@ -38,10 +46,10 @@ pub struct Profile {
     pub exec: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
-    config_set: Vec<(Output, ZwlrOutputHeadV1, ZwlrOutputModeV1)>,
+    config_set: Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)>,
 }
 
 impl ShikaneProfilePlan {
@@ -52,28 +60,57 @@ impl ShikaneProfilePlan {
         let configuration = backend.create_configuration();
         debug!("Configuring profile: {}", self.profile.name);
 
-        for (output, head, mode) in self.config_set.iter() {
-            // Cannot configure a head or a mode that is not alive
-            if !head.is_alive() || !mode.is_alive() {
+        for (output, wlr_head, wlr_mode) in self.config_set.iter() {
+            // Cannot configure a head that is not alive
+            if !wlr_head.is_alive() {
                 return Err(ShikaneError::Configuration(self.profile.name.clone()));
             }
 
             // Disable the head if is disabled in the config
             if !output.enable {
-                configuration.disable_head(head);
+                configuration.disable_head(wlr_head);
                 continue;
             }
 
             // Enable the head and set its properties
-            let configuration_head = configuration.enable_head(head, &backend.qh, backend.data);
+            let configuration_head = configuration.enable_head(wlr_head, &backend.qh, backend.data);
 
             // Mode
-            trace!("Setting Mode: {}", output.mode);
-            configuration_head.set_mode(mode);
+            if let Some(mode) = &output.mode {
+                if mode.custom {
+                    trace!("Setting Mode: custom({})", mode);
+                    configuration_head.set_custom_mode(
+                        mode.width,
+                        mode.height,
+                        mode.refresh_m_hz(),
+                    );
+                } else if let Some(wlr_mode) = wlr_mode {
+                    // Cannot configure a mode that is not alive
+                    if !wlr_mode.is_alive() {
+                        return Err(ShikaneError::Configuration(self.profile.name.clone()));
+                    }
+                    trace!("Setting Mode: {}", mode);
+                    configuration_head.set_mode(wlr_mode);
+                }
+            }
 
             // Position
-            trace!("Setting Position: {}", output.position);
-            configuration_head.set_position(output.position.x, output.position.y);
+            if let Some(pos) = &output.position {
+                trace!("Setting Position: {}", pos);
+                configuration_head.set_position(pos.x, pos.y);
+            }
+
+            // Scale
+            if let Some(scale) = &output.scale {
+                trace!("Setting Scale: {}", scale);
+                configuration_head.set_scale(*scale);
+            }
+
+            // Transform
+            if let Some(transform) = &output.transform {
+                trace!("Setting Transform: {}", display_transform(transform));
+                configuration_head.set_transform(*transform);
+            }
         }
 
         Ok(configuration)
@@ -91,9 +128,11 @@ pub fn create_profile_plans(
             continue;
         }
 
+        trace!("[Considering Profile] {}", profile.name);
+
         let mut config_set = vec![];
         'outputs: for output in profile.outputs.iter() {
-            'heads: for o_head in backend.match_heads(&output.r#match) {
+            'heads: for o_head in backend.match_heads(output) {
                 // If the head has already been added to the config_set then skip it and look at
                 // the next one
                 if config_set.iter().any(|(_, wh, _)| *wh == o_head.wlr_head) {
@@ -101,24 +140,27 @@ pub fn create_profile_plans(
                     continue 'heads;
                 }
 
-                if let Some(o_mode) = backend.match_mode(o_head, &output.mode) {
-                    trace!(
-                        "[Head Matched] match: {}, head.name: {}, mode: {}",
-                        output.r#match,
-                        o_head.name,
-                        o_mode
-                    );
-                    config_set.push((
-                        output.clone(),
-                        o_head.wlr_head.clone(),
-                        o_mode.wlr_mode.clone(),
-                    ));
-                    continue 'outputs;
+                let mut mode_trace = String::new();
+                let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
+                if let Some(mode) = &output.mode {
+                    if let Some(o_mode) = backend.match_mode(o_head, mode) {
+                        mode_trace = format!(", mode {}", o_mode);
+                        wlr_mode = Some(o_mode.wlr_mode.clone());
+                    }
                 }
+
+                trace!(
+                    "[Head Matched] match: {}, head.name: {}{mode_trace}",
+                    output.r#match,
+                    o_head.name,
+                );
+                config_set.push((output.clone(), o_head.wlr_head.clone(), wlr_mode));
+                continue 'outputs;
             }
         }
 
         if config_set.len() == profile.outputs.len() {
+            trace!("[Profile added to list] {}", profile.name);
             profile_plans.push(ShikaneProfilePlan {
                 profile: profile.clone(),
                 config_set,
@@ -127,6 +169,41 @@ pub fn create_profile_plans(
     }
 
     profile_plans
+}
+
+impl Mode {
+    pub fn matches(&self, o_mode: &OutputMode, delta: &mut i32) -> bool {
+        const MAX_DELTA: i32 = 500; // maximum difference in mHz
+        let refresh: i32 = self.refresh_m_hz();
+        let diff: i32 = refresh.abs_diff(o_mode.refresh) as i32; // difference in mHz
+        trace!(
+            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
+            o_mode.refresh
+        );
+
+        if diff < MAX_DELTA && diff < *delta {
+            *delta = diff;
+            return true;
+        }
+        false
+    }
+
+    /// Returns the refresh rate in mHz
+    pub fn refresh_m_hz(&self) -> i32 {
+        // convert Hz to mHZ and cut the decimals off
+        //
+        // self.refresh = 59.992_345f32  Hz
+        // (_) * 1000.0 = 59_992.345f32 mHz
+        // (_).trunc()  = 59_992.0f32   mHz
+        // (_) as i32   = 59_992i32     mHz
+        (self.refresh * 1000.0).trunc() as i32
+    }
+}
+
+impl Output {
+    pub fn matches(&self, o_head: &OutputHead) -> bool {
+        o_head.name == self.r#match || o_head.make == self.r#match || o_head.model == self.r#match
+    }
 }
 
 impl Display for Position {
@@ -139,4 +216,60 @@ impl Display for Mode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}x{}@{}Hz", self.width, self.height, self.refresh)
     }
+}
+
+// `Transform` helpers
+#[derive(Deserialize)]
+#[serde(remote = "Transform")]
+#[repr(u32)]
+#[non_exhaustive]
+enum TransformDef {
+    #[serde(rename = "normal")]
+    Normal,
+    #[serde(rename = "90")]
+    _90,
+    #[serde(rename = "180")]
+    _180,
+    #[serde(rename = "270")]
+    _270,
+    #[serde(rename = "flipped")]
+    Flipped,
+    #[serde(rename = "flipped-90")]
+    Flipped90,
+    #[serde(rename = "flipped-180")]
+    Flipped180,
+    #[serde(rename = "flipped-270")]
+    Flipped270,
+}
+
+mod option_transform {
+    use super::{Transform, TransformDef};
+    use serde::{Deserialize, Deserializer};
+
+    // see https://github.com/serde-rs/serde/issues/1301#issuecomment-394108486
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Transform>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct Helper(#[serde(with = "TransformDef")] Transform);
+
+        let helper = Option::deserialize(deserializer)?;
+        Ok(helper.map(|Helper(external)| external))
+    }
+}
+
+fn display_transform(t: &Transform) -> String {
+    match t {
+        Transform::Normal => "normal",
+        Transform::_90 => "90",
+        Transform::_180 => "180",
+        Transform::_270 => "270",
+        Transform::Flipped => "flipped",
+        Transform::Flipped90 => "flipped-90",
+        Transform::Flipped180 => "flipped-180",
+        Transform::Flipped270 => "flipped-270",
+        _ => "",
+    }
+    .to_string()
 }

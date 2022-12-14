@@ -14,7 +14,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct OutputHead {
     pub name: String,
     pub description: String,
@@ -156,8 +156,5 @@ impl OutputHead {
             serial_number: Default::default(),
             wlr_head,
         }
-    }
-    pub fn matches(&self, pat: &str) -> bool {
-        self.name == pat || self.make == pat || self.model == pat
     }
 }

@@ -9,7 +9,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OutputMode {
     pub width: i32,
     pub height: i32,
@@ -79,23 +79,6 @@ impl OutputMode {
             preferred: Default::default(),
             wlr_mode,
         }
-    }
-
-    /// `refresh` is in Hz
-    pub fn matches(&self, refresh: i32, delta: &mut i32) -> bool {
-        const MAX_DELTA: i32 = 500; // maximum difference in mHz
-        let refresh: i32 = refresh * 1000; // convert Hz to mHZ
-        let diff: i32 = refresh.abs_diff(self.refresh) as i32; // difference in mHz
-        trace!(
-            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
-            self.refresh
-        );
-
-        if diff < MAX_DELTA && diff < *delta {
-            *delta = diff;
-            return true;
-        }
-        false
     }
 }
 
