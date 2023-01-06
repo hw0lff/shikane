@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fmt::Display;
 
 use crate::backend::output_head::OutputHead;
@@ -121,9 +122,9 @@ impl ShikaneProfilePlan {
 pub fn create_profile_plans(
     profiles: &[Profile],
     backend: &ShikaneBackend,
-) -> Vec<ShikaneProfilePlan> {
+) -> VecDeque<ShikaneProfilePlan> {
     trace!("[Create Profile Plans]");
-    let mut profile_plans = vec![];
+    let mut profile_plans = VecDeque::new();
     for profile in profiles.iter() {
         if profile.outputs.len() != backend.output_heads.len() {
             continue;
@@ -147,7 +148,7 @@ pub fn create_profile_plans(
 
         if config_set.len() == profile.outputs.len() {
             trace!("[Profile added to list] {}", profile.name);
-            profile_plans.push(ShikaneProfilePlan {
+            profile_plans.push_back(ShikaneProfilePlan {
                 profile: profile.clone(),
                 config_set,
             });
