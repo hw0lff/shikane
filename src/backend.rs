@@ -7,7 +7,6 @@ mod wl_registry;
 
 use crate::error::ShikaneError;
 use crate::profile::Mode;
-use crate::profile::Output;
 use crate::state::StateInput;
 
 use self::output_head::OutputHead;
@@ -83,12 +82,8 @@ impl ShikaneBackend {
         }
     }
 
-    pub fn match_heads(&self, output: &Output) -> Vec<&OutputHead> {
-        let o_heads: Vec<&OutputHead> = self
-            .output_heads
-            .iter()
-            .filter_map(|(_, h)| if output.matches(h) { Some(h) } else { None })
-            .collect();
+    pub fn heads(&self) -> Vec<&OutputHead> {
+        let o_heads: Vec<&OutputHead> = self.output_heads.iter().map(|(_, h)| h).collect();
         o_heads
     }
 

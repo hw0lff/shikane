@@ -1,9 +1,11 @@
+use std::collections::VecDeque;
 use std::fmt::Display;
 
 use crate::backend::output_head::OutputHead;
 use crate::backend::output_mode::OutputMode;
 use crate::backend::ShikaneBackend;
 use crate::error::ShikaneError;
+use crate::hk::HKMap;
 
 use serde::Deserialize;
 use wayland_client::protocol::wl_output::Transform;
@@ -120,9 +122,9 @@ impl ShikaneProfilePlan {
 pub fn create_profile_plans(
     profiles: &[Profile],
     backend: &ShikaneBackend,
-) -> Vec<ShikaneProfilePlan> {
+) -> VecDeque<ShikaneProfilePlan> {
     trace!("[Create Profile Plans]");
-    let mut profile_plans = vec![];
+    let mut profile_plans = VecDeque::new();
     for profile in profiles.iter() {
         if profile.outputs.len() != backend.output_heads.len() {
             continue;
@@ -130,38 +132,23 @@ pub fn create_profile_plans(
 
         trace!("[Considering Profile] {}", profile.name);
 
-        let mut config_set = vec![];
-        'outputs: for output in profile.outputs.iter() {
-            'heads: for o_head in backend.match_heads(output) {
-                // If the head has already been added to the config_set then skip it and look at
-                // the next one
-                if config_set.iter().any(|(_, wh, _)| *wh == o_head.wlr_head) {
-                    trace!("[Skip Head] {}", o_head.name);
-                    continue 'heads;
-                }
+        let o_heads = backend.heads();
 
-                let mut mode_trace = String::new();
-                let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
-                if let Some(mode) = &output.mode {
-                    if let Some(o_mode) = backend.match_mode(o_head, mode) {
-                        mode_trace = format!(", mode {}", o_mode);
-                        wlr_mode = Some(o_mode.wlr_mode.clone());
-                    }
+        let mut edges = vec![];
+        for output in profile.outputs.iter() {
+            for o_head in o_heads.iter() {
+                if output.matches(o_head) {
+                    edges.push((output, *o_head));
                 }
-
-                trace!(
-                    "[Head Matched] match: {}, head.name: {}{mode_trace}",
-                    output.r#match,
-                    o_head.name,
-                );
-                config_set.push((output.clone(), o_head.wlr_head.clone(), wlr_mode));
-                continue 'outputs;
             }
         }
 
+        let matchings = HKMap::new(&profile.outputs, &o_heads).create_hk_matchings(&edges);
+        let config_set = create_config_set(matchings, backend);
+
         if config_set.len() == profile.outputs.len() {
             trace!("[Profile added to list] {}", profile.name);
-            profile_plans.push(ShikaneProfilePlan {
+            profile_plans.push_back(ShikaneProfilePlan {
                 profile: profile.clone(),
                 config_set,
             });
@@ -169,6 +156,35 @@ pub fn create_profile_plans(
     }
 
     profile_plans
+}
+
+fn create_config_set(
+    matchings: Vec<(&Output, &OutputHead)>,
+    backend: &ShikaneBackend,
+) -> Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)> {
+    matchings
+        .iter()
+        .cloned()
+        .map(|(output, o_head)| {
+            let mut mode_trace = String::new();
+            let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
+
+            if let Some(mode) = &output.mode {
+                if let Some(o_mode) = backend.match_mode(o_head, mode) {
+                    mode_trace = format!(", mode {}", o_mode);
+                    wlr_mode = Some(o_mode.wlr_mode.clone());
+                }
+            }
+
+            trace!(
+                "[Head Matched] match: {}, head.name: {}{mode_trace}",
+                output.r#match,
+                o_head.name,
+            );
+
+            (output.clone(), o_head.wlr_head.clone(), wlr_mode)
+        })
+        .collect()
 }
 
 impl Mode {
@@ -202,7 +218,35 @@ impl Mode {
 
 impl Output {
     pub fn matches(&self, o_head: &OutputHead) -> bool {
+        // if a pattern is enclosed in '/' it should be interpreted as a regex
+        if self.r#match.starts_with('/') && self.r#match.ends_with('/') {
+            let len = self.r#match.len();
+            let content = &self.r#match[1..len - 1];
+            return regex::regex(content, o_head);
+        }
         o_head.name == self.r#match || o_head.make == self.r#match || o_head.model == self.r#match
+    }
+}
+
+mod regex {
+    use super::OutputHead;
+
+    pub fn regex(re: &str, o_head: &OutputHead) -> bool {
+        let t = format!(
+            "{}|{}|{}|{}|{}",
+            o_head.name, o_head.make, o_head.model, o_head.serial_number, o_head.description
+        );
+        match regex::Regex::new(re) {
+            Ok(regex) if regex.is_match(&t) => {
+                log::debug!("[Matched] \"{:?}\" {t:?}", regex);
+                return true;
+            }
+            Ok(regex) => {
+                log::debug!("[Does not match] \"{:?}\" {t:?}", regex);
+            }
+            Err(err) => log::warn!("[Error] {}", err),
+        }
+        false
     }
 }
 
