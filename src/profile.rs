@@ -175,7 +175,7 @@ fn create_config_set(
                 if mode.custom {
                     // do nothing
                 } else if let Some(o_mode) = backend.match_mode(o_head, mode) {
-                    mode_trace = format!(", mode {}", o_mode);
+                    mode_trace = format!(", mode {o_mode}");
                     wlr_mode = Some(o_mode.wlr_mode.clone());
                 } else {
                     // If a [`Mode`] was specified but no [`OutputMode`] matched
