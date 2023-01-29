@@ -11,7 +11,6 @@ use serde::Deserialize;
 use wayland_client::protocol::wl_output::Transform;
 use wayland_client::Proxy;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
-use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 
 #[allow(unused_imports)]
@@ -51,7 +50,7 @@ pub struct Profile {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
-    config_set: Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)>,
+    config_set: Vec<(Output, OutputHead, Option<ZwlrOutputModeV1>)>,
 }
 
 impl ShikaneProfilePlan {
@@ -62,7 +61,8 @@ impl ShikaneProfilePlan {
         let configuration = backend.create_configuration();
         debug!("Configuring profile: {}", self.profile.name);
 
-        for (output, wlr_head, wlr_mode) in self.config_set.iter() {
+        for (output, o_head, wlr_mode) in self.config_set.iter() {
+            let wlr_head = &o_head.wlr_head;
             // Cannot configure a head that is not alive
             if !wlr_head.is_alive() {
                 return Err(ShikaneError::Configuration(self.profile.name.clone()));
@@ -161,7 +161,7 @@ pub fn create_profile_plans(
 fn create_config_set(
     matchings: Vec<(&Output, &OutputHead)>,
     backend: &ShikaneBackend,
-) -> Vec<(Output, ZwlrOutputHeadV1, Option<ZwlrOutputModeV1>)> {
+) -> Vec<(Output, OutputHead, Option<ZwlrOutputModeV1>)> {
     matchings
         .iter()
         .cloned()
@@ -191,7 +191,7 @@ fn create_config_set(
                 o_head.name,
             );
 
-            Some((output.clone(), o_head.wlr_head.clone(), wlr_mode))
+            Some((output.clone(), o_head.clone(), wlr_mode))
         })
         .collect()
 }
