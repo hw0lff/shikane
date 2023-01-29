@@ -170,7 +170,11 @@ fn create_config_set(
             let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
 
             if let Some(mode) = &output.mode {
-                if let Some(o_mode) = backend.match_mode(o_head, mode) {
+                // When a mode is declared custom,
+                // then there is no need to look for a matching OutputMode
+                if mode.custom {
+                    // do nothing
+                } else if let Some(o_mode) = backend.match_mode(o_head, mode) {
                     mode_trace = format!(", mode {}", o_mode);
                     wlr_mode = Some(o_mode.wlr_mode.clone());
                 } else {
