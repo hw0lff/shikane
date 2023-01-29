@@ -217,10 +217,13 @@ impl Mode {
 
 impl Output {
     pub fn matches(&self, o_head: &OutputHead) -> bool {
-        o_head.name == self.r#match
-            || o_head.make == self.r#match
-            || o_head.model == self.r#match
-            || regex::regex(&self.r#match, o_head)
+        // if a pattern is enclosed in '/' it should be interpreted as a regex
+        if self.r#match.starts_with('/') && self.r#match.ends_with('/') {
+            let len = self.r#match.len();
+            let content = &self.r#match[1..len - 1];
+            return regex::regex(content, o_head);
+        }
+        o_head.name == self.r#match || o_head.make == self.r#match || o_head.model == self.r#match
     }
 }
 
