@@ -83,7 +83,7 @@ impl ShikaneBackend {
     }
 
     pub fn heads(&self) -> Vec<&OutputHead> {
-        let o_heads: Vec<&OutputHead> = self.output_heads.iter().map(|(_, h)| h).collect();
+        let o_heads: Vec<&OutputHead> = self.output_heads.values().collect();
         o_heads
     }
 
