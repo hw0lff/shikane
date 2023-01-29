@@ -33,6 +33,7 @@ pub struct Mode {
 pub struct Output {
     pub enable: bool,
     pub r#match: String,
+    pub exec: Option<Vec<String>>,
     pub mode: Option<Mode>,
     pub position: Option<Position>,
     pub scale: Option<f64>,
