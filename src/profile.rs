@@ -165,7 +165,7 @@ fn create_config_set(
     matchings
         .iter()
         .cloned()
-        .map(|(output, o_head)| {
+        .filter_map(|(output, o_head)| {
             let mut mode_trace = String::new();
             let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
 
@@ -173,6 +173,11 @@ fn create_config_set(
                 if let Some(o_mode) = backend.match_mode(o_head, mode) {
                     mode_trace = format!(", mode {}", o_mode);
                     wlr_mode = Some(o_mode.wlr_mode.clone());
+                } else {
+                    // If a [`Mode`] was specified but no [`OutputMode`] matched
+                    // then this profile should not be selected
+                    warn!("Output {} does not support mode {mode}", o_head.name);
+                    return None;
                 }
             }
 
@@ -182,7 +187,7 @@ fn create_config_set(
                 o_head.name,
             );
 
-            (output.clone(), o_head.wlr_head.clone(), wlr_mode)
+            Some((output.clone(), o_head.wlr_head.clone(), wlr_mode))
         })
         .collect()
 }
