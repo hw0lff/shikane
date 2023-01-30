@@ -6,6 +6,8 @@ authors = ["Hendrik Wolff <hendrik.wolff@agdsn.me>"]
 license = "MIT"
 readme = "README.md"
 rust-version = "1.60"
+categories = ["command-line-utilities"]
+keywords = ["wayland", "wlroots", "sway"]
 
 [dependencies]
 calloop = "0.10.4"
