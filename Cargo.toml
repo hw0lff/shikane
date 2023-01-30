@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Hendrik Wolff <hendrik.wolff@agdsn.me>"]
 license = "MIT"
+readme = "README.md"
 
 [dependencies]
 calloop = "0.10.4"
