@@ -2,6 +2,7 @@ mod args;
 mod backend;
 mod config;
 mod error;
+mod exec;
 mod hk;
 mod profile;
 mod state;
