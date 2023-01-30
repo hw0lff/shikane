@@ -5,7 +5,7 @@ use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::ShikaneConfig;
 use crate::error::ShikaneError;
-use crate::exec::execute_profile_commands;
+use crate::exec::execute_plan_commands;
 use crate::profile;
 use crate::profile::ShikaneProfilePlan;
 
@@ -134,7 +134,7 @@ impl ShikaneState {
             }
             (State::ApplyingProfile(plan), StateInput::OutputConfigurationSucceeded) => {
                 // Profile is applied
-                execute_profile_commands(&plan.profile, self.args.oneshot);
+                execute_plan_commands(&plan, self.args.oneshot);
                 info!("Profile applied: {}", plan.profile.name);
 
                 if self.args.oneshot {

@@ -51,7 +51,7 @@ pub struct Profile {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
-    config_set: Vec<(Output, OutputHead, Option<ZwlrOutputModeV1>)>,
+    pub config_set: Vec<(Output, OutputHead, Option<ZwlrOutputModeV1>)>,
 }
 
 impl ShikaneProfilePlan {
