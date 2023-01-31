@@ -18,10 +18,14 @@ impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneBackend {
         if let wl_registry::Event::Global {
             name,
             interface,
-            version: _,
+            version,
         } = event
         {
             if let "zwlr_output_manager_v1" = &interface[..] {
+                if version < 3 {
+                    error!("wlr-output-management protocol version {version} < 3 is not supported");
+                    std::process::exit(1);
+                }
                 const VERSION: u32 = 3;
                 let wlr_output_manager = registry.bind::<ZwlrOutputManagerV1, _, _>(
                     name,
