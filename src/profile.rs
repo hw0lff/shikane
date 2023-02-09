@@ -48,7 +48,7 @@ pub struct Profile {
     pub exec: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
     pub config_set: Vec<OutputMatching>,
@@ -120,6 +120,13 @@ impl ShikaneProfilePlan {
         }
 
         Ok(configuration)
+    }
+}
+
+impl PartialEq for ShikaneProfilePlan {
+    fn eq(&self, other: &Self) -> bool {
+        self.profile == other.profile
+        // && self.config_set == other.config_set
     }
 }
 
