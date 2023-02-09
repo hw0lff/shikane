@@ -1,3 +1,4 @@
+use crate::profile::OutputMatching;
 use crate::profile::ShikaneProfilePlan;
 use std::process::Command;
 
@@ -37,7 +38,7 @@ fn create_command_list(plan: &ShikaneProfilePlan) -> Vec<(String, Command)> {
     let mut cmd_list: Vec<(String, Command)> = vec![];
     let env_vars = vec![("SHIKANE_PROFILE_NAME", plan.profile.name.as_str())];
     assemble_commands(&mut cmd_list, plan.profile.exec.clone(), &env_vars);
-    for (o, oh, _) in plan.config_set.iter() {
+    for OutputMatching(o, oh, _) in plan.config_set.iter() {
         let env_vars = vec![("SHIKANE_OUTPUT_NAME", oh.name.as_str())];
         assemble_commands(&mut cmd_list, o.exec.clone(), &env_vars);
     }

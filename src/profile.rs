@@ -51,8 +51,11 @@ pub struct Profile {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShikaneProfilePlan {
     pub profile: Profile,
-    pub config_set: Vec<(Output, OutputHead, Option<ZwlrOutputModeV1>)>,
+    pub config_set: Vec<OutputMatching>,
 }
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct OutputMatching(pub Output, pub OutputHead, pub Option<ZwlrOutputModeV1>);
 
 impl ShikaneProfilePlan {
     pub fn configure(
@@ -62,7 +65,7 @@ impl ShikaneProfilePlan {
         let configuration = backend.create_configuration();
         debug!("Configuring profile: {}", self.profile.name);
 
-        for (output, o_head, wlr_mode) in self.config_set.iter() {
+        for OutputMatching(output, o_head, wlr_mode) in self.config_set.iter() {
             let wlr_head = &o_head.wlr_head;
             // Cannot configure a head that is not alive
             if !wlr_head.is_alive() {
@@ -162,7 +165,7 @@ pub fn create_profile_plans(
 fn create_config_set(
     matchings: Vec<(&Output, &OutputHead)>,
     backend: &ShikaneBackend,
-) -> Vec<(Output, OutputHead, Option<ZwlrOutputModeV1>)> {
+) -> Vec<OutputMatching> {
     matchings
         .iter()
         .cloned()
@@ -192,7 +195,7 @@ fn create_config_set(
                 o_head.name,
             );
 
-            Some((output.clone(), o_head.clone(), wlr_mode))
+            Some(OutputMatching(output.clone(), o_head.clone(), wlr_mode))
         })
         .collect()
 }
