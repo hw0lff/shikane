@@ -210,7 +210,10 @@ impl ShikaneState {
                 self.create_list_of_unchecked_plans();
                 self.configure_next_plan()
             }
-            (State::ShuttingDown, StateInput::OutputManagerDone) => unreachable!(),
+            (state @ State::ShuttingDown, input @ StateInput::OutputManagerDone) => {
+                warn!("Reached unexpected state \"{state}\" with input \"{input}\". Continuing as if it had not occurred.");
+                Ok(state)
+            }
             (State::ShuttingDown, StateInput::OutputManagerFinished) => {
                 trace!("Stopping event loop");
                 self.loop_signal.stop();
@@ -222,9 +225,15 @@ impl ShikaneState {
                 self.loop_signal.stop();
                 Ok(State::ShuttingDown)
             }
-            (_, StateInput::OutputConfigurationSucceeded) => unreachable!(),
-            (_, StateInput::OutputConfigurationFailed) => unreachable!(),
-            (_, StateInput::OutputConfigurationCancelled) => unreachable!(),
+            (
+                state,
+                input @ StateInput::OutputConfigurationSucceeded
+                | input @ StateInput::OutputConfigurationFailed
+                | input @ StateInput::OutputConfigurationCancelled,
+            ) => {
+                warn!("Reached unexpected state \"{state}\" with input \"{input}\". Continuing as if it had not occurred.");
+                Ok(state)
+            }
         }
     }
 }
