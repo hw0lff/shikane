@@ -216,11 +216,8 @@ impl ShikaneState {
                 self.loop_signal.stop();
                 Ok(State::ShuttingDown)
             }
-            (_, StateInput::OutputManagerFinished) => {
-                error!(
-                    "OutputManager has finished unexpectedly. State: {:?}",
-                    self.state
-                );
+            (state, StateInput::OutputManagerFinished) => {
+                error!("OutputManager has finished unexpectedly. State: {state}",);
                 trace!("Stopping event loop");
                 self.loop_signal.stop();
                 Ok(State::ShuttingDown)
