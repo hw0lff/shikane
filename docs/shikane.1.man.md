@@ -18,6 +18,7 @@ be perfectly matched to the currently connected outputs and their capabilities.
 (See **shikane**(5) for details.)
 
 This is a Wayland equivalent for tools like autorandr.
+It aims to fully replace kanshi and add new features.
 shikane works with wayland compositors supporting version 3 of the
 wlr-output-management protocol (e.g., compositors using wlroots v0.16).
 

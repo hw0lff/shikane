@@ -7,13 +7,20 @@ A profile will be applied automatically if all specified outputs and modes can
 be perfectly matched to the currently connected outputs and their capabilities.
 
 This is a Wayland equivalent for tools like [autorandr].
+It aims to fully replace [kanshi] and add new features.
 shikane works with Wayland compositors supporting version 3 of the
 wlr-output-management protocol (e.g., compositors using wlroots v0.16).
 
 ## Features
-- regex based output matching
-- execute commands after a profile has been applied
-- output names are provided to executed commands
+| feature | kanshi | shikane |
+| ------- | ------ | ------- |
+| configure output properties: resolution, refresh rate, position, scaling, transformation | yes | yes |
+| execute commands | yes | yes |
+| output names are supplied to executed commands | no | yes |
+| full cardinality matching algorithm | no | yes |
+| regex based output matching | no | yes |
+| state machine defined execution | no | yes |
+| one-shot mode | no | yes |
 
 ## Installation
 Via cargo from [crates.io]:
@@ -77,6 +84,10 @@ exec = ["notify-send shikane \"Profile $SHIKANE_PROFILE_NAME has been applied\""
     transform = "270"
 ```
 
+## Acknowledgements
+- [kanshi] being the inspiration and motivation
+- [wayland-rs] providing the wayland bindings
+
 ## License
 MIT
 
@@ -84,4 +95,6 @@ MIT
 [AUR]: https://aur.archlinux.org/packages/shikane
 [autorandr]: https://github.com/phillipberndt/autorandr
 [crates.io]: https://crates.io/crates/shikane
+[kanshi]: https://sr.ht/~emersion/kanshi
 [TOML]: https://toml.io
+[wayland-rs]: https://github.com/Smithay/wayland-rs
