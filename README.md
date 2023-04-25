@@ -40,6 +40,15 @@ man 1 shikane
 man 5 shikane
 ```
 
+## Usage
+1. Create your configuration file.
+    See [configuration](#configuration) for a short overview
+    or have a look at the man page `man 5 shikane` for more detailed information.
+2. Start shikane.
+    ```sh
+    shikane
+    ```
+
 ## Building
 Dependencies:
 - a rust toolchain >=1.60
