@@ -23,14 +23,14 @@ wlr-output-management protocol (e.g., compositors using wlroots v0.16).
 | one-shot mode | no | yes |
 
 ## Installation
-Via cargo from [crates.io]:
-```sh
-cargo install shikane
-```
-
 Via your `$AURhelper` from the [AUR]:
 ```sh
 $AURhelper -S shikane
+```
+
+Via cargo from [crates.io] (without man pages):
+```sh
+cargo install shikane
 ```
 
 ## Documentation
