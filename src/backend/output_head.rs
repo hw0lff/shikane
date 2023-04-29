@@ -5,6 +5,7 @@ use wayland_client::backend::ObjectId;
 use wayland_client::event_created_child;
 use wayland_client::protocol::wl_output::Transform;
 use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
+use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::AdaptiveSyncState;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::Event as ZwlrOutputHeadEvent;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::EVT_MODE_OPCODE;
@@ -30,6 +31,7 @@ pub struct OutputHead {
     pub make: String,
     pub model: String,
     pub serial_number: String,
+    pub adaptive_sync: Option<AdaptiveSyncState>,
     pub wlr_head: ZwlrOutputHeadV1,
 }
 
@@ -126,6 +128,19 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
                 trace!("[Event::SerialNumber] {:?}", serial_number);
                 head.serial_number = serial_number
             }
+            ZwlrOutputHeadEvent::AdaptiveSync { state } => {
+                let event_prefix = "[Event::AdaptiveSync]";
+                head.adaptive_sync = match state.into_result() {
+                    Ok(adaptive_sync) => {
+                        trace!("{event_prefix} {:?}", adaptive_sync);
+                        Some(adaptive_sync)
+                    }
+                    Err(err) => {
+                        warn!("{event_prefix} {w_value_err}: {:?}", err);
+                        None
+                    }
+                }
+            }
             _ => {
                 warn!("[Event] unknown event received {:?}", event)
             }
@@ -154,6 +169,7 @@ impl OutputHead {
             make: Default::default(),
             model: Default::default(),
             serial_number: Default::default(),
+            adaptive_sync: Default::default(),
             wlr_head,
         }
     }
