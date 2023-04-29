@@ -15,6 +15,7 @@ wlr-output-management protocol (e.g., compositors using wlroots v0.16).
 | feature | kanshi | shikane |
 | ------- | ------ | ------- |
 | configure output properties: resolution, refresh rate, position, scaling, transformation | yes | yes |
+| configure adaptive sync | no | yes |
 | execute commands | yes | yes |
 | output names are supplied to executed commands | no | yes |
 | full cardinality matching algorithm | no | yes |
