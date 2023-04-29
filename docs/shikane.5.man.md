@@ -79,9 +79,10 @@ and may look like this:
     guaranteed to be preserved. The *name* of the display can be retrieved from
     the **\$SHIKANE_OUTPUT_NAME** environment variable.
 
-The **mode**, **position**, **scale** and **transform** options will only change
-the respective properties of the display if they are specified (e.g. the scaling
-of a display will not be changed if the **scale** field is not present).
+The **mode**, **position**, **scale**, **transform** and **adaptive_sync**
+options will only change the respective properties of the display if they are
+specified (e.g. the scaling of a display will not be changed if the **scale**
+field is not present).
 
 **mode** = { width = *width*, height = *height*, refresh = *rate*\(, **custom** = *true* \| *false*\) }
 :   Optional.
@@ -107,6 +108,11 @@ of a display will not be changed if the **scale** field is not present).
     Sets the display transform. May be one of *90*, *180*, *270* for a
     rotation; or *flipped*, *flipped-90*, *flipped-180*, *flipped-270* for a
     flip and a rotation; or *normal* for no transform.
+
+**adaptive_sync** = *true* \| *false*
+:   Optional.
+    Enables or disables adaptive synchronization for the display (also known as
+    VRR, Variable Refresh Rate).
 
 
 # EXAMPLES

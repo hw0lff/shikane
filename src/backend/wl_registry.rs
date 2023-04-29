@@ -26,15 +26,15 @@ impl Dispatch<wl_registry::WlRegistry, Data> for ShikaneBackend {
                     error!("wlr-output-management protocol version {version} < 3 is not supported");
                     std::process::exit(1);
                 }
-                const VERSION: u32 = 3;
                 let wlr_output_manager = registry.bind::<ZwlrOutputManagerV1, _, _>(
                     name,
-                    VERSION,
+                    version,
                     qhandle,
                     Data::default(),
                 );
                 state.wlr_output_manager = Some(wlr_output_manager);
-                trace!("[WlRegistry::bind] [{}] {} (v{})", name, interface, VERSION);
+                state.wlr_output_manager_version = version;
+                trace!("[WlRegistry::bind] [{}] {} (v{})", name, interface, version);
             }
         }
     }
