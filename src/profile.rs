@@ -11,6 +11,7 @@ use serde::Deserialize;
 use wayland_client::protocol::wl_output::Transform;
 use wayland_client::Proxy;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
+use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::AdaptiveSyncState;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
 
 #[allow(unused_imports)]
@@ -39,6 +40,7 @@ pub struct Output {
     pub scale: Option<f64>,
     #[serde(default, with = "option_transform")]
     pub transform: Option<Transform>,
+    pub adaptive_sync: Option<bool>,
 }
 #[derive(Clone, Default, Debug, Deserialize, PartialEq)]
 pub struct Profile {
@@ -116,6 +118,22 @@ impl ShikaneProfilePlan {
             if let Some(transform) = &output.transform {
                 trace!("Setting Transform: {}", display_transform(transform));
                 configuration_head.set_transform(*transform);
+            }
+
+            // Adaptive Sync
+            if let Some(adaptive_sync) = &output.adaptive_sync {
+                let as_state = match adaptive_sync {
+                    true => AdaptiveSyncState::Enabled,
+                    false => AdaptiveSyncState::Disabled,
+                };
+                if backend.wlr_output_manager_version >= 4 {
+                    trace!("Setting Adaptive Sync: {as_state:?}",);
+                    configuration_head.set_adaptive_sync(as_state);
+                } else {
+                    let msg = format!("Cannot set adaptive_sync to {as_state:?}.");
+                    let msg = format!("{msg} wlr-output-management protocol version >= 4 needed.");
+                    warn!("{msg} Have version {}", backend.wlr_output_manager_version);
+                }
             }
         }
 
