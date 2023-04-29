@@ -30,6 +30,7 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::Z
 pub struct ShikaneBackend {
     pub output_manager_serial: u32,
     pub wlr_output_manager: Option<ZwlrOutputManagerV1>,
+    pub wlr_output_manager_version: u32,
     pub wlr_output_configuration: Option<ZwlrOutputConfigurationV1>,
     /// A Mapping from ZwlrOutputHeadV1-Ids to OutputHeads
     pub output_heads: HashMap<ObjectId, OutputHead>,
@@ -137,6 +138,7 @@ impl ShikaneBackend {
             data: Default::default(),
             output_manager_serial: Default::default(),
             wlr_output_manager: Default::default(),
+            wlr_output_manager_version: Default::default(),
             wlr_output_configuration: Default::default(),
             output_heads: Default::default(),
             output_modes: Default::default(),
