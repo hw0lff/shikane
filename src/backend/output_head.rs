@@ -42,6 +42,8 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
         _: &Connection,
         _qhandle: &QueueHandle<Self>,
     ) {
+        let w_value_err = "The stored value does not match one defined by the protocol file";
+
         // Initialize the OutputHead and ensure it is in the HashMap
         let mut head;
         match state.output_heads.get_mut(&proxy.id()) {
@@ -91,16 +93,14 @@ impl Dispatch<ZwlrOutputHeadV1, Data> for ShikaneBackend {
                 (head.position_x, head.position_y) = (x, y)
             }
             ZwlrOutputHeadEvent::Transform { transform } => {
+                let event_prefix = "[Event::Transform]";
                 head.transform = match transform.into_result() {
                     Ok(transform) => {
-                        trace!("[Event::Transform] {:?}", transform);
+                        trace!("{event_prefix} {:?}", transform);
                         Some(transform)
                     }
                     Err(err) => {
-                        warn!(
-                        "[Event::Transform] The stored value does not match one defined by the protocol file: {:?}",
-                        err
-                    );
+                        warn!("{event_prefix} {w_value_err}: {:?}", err);
                         None
                     }
                 }
