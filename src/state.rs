@@ -1,9 +1,9 @@
 use std::collections::VecDeque;
 use std::fmt::Display;
 
-use crate::args::ShikaneArgs;
 use crate::backend::ShikaneBackend;
 use crate::config::ShikaneConfig;
+use crate::daemon::ShikaneArgs;
 use crate::error::ShikaneError;
 use crate::exec::execute_plan_commands;
 use crate::profile;

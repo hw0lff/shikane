@@ -1,4 +1,3 @@
-pub(crate) mod args;
 pub(crate) mod backend;
 pub(crate) mod config;
 pub mod daemon;
