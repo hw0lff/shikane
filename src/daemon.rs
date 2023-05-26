@@ -1,35 +1,18 @@
-mod args;
-mod backend;
-mod config;
-mod error;
-mod exec;
-mod hk;
-mod profile;
-mod state;
-use backend::ShikaneBackend;
-use clap::Parser;
-use error::ShikaneError;
-use state::ShikaneState;
+use crate::args::ShikaneArgs;
+use crate::backend::ShikaneBackend;
+use crate::config::ShikaneConfig;
+use crate::error::ShikaneError;
+use crate::state::ShikaneState;
 
 use calloop::{channel, EventLoop};
+use clap::Parser;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-use crate::{args::ShikaneArgs, config::ShikaneConfig};
-
-fn main() {
-    env_logger::Builder::from_env(
-        env_logger::Env::new()
-            .filter_or("SHIKANE_LOG", "warn")
-            .write_style_or("SHIKANE_LOG_STYLE", "auto"),
-    )
-    .format_timestamp(Some(env_logger::TimestampPrecision::Millis))
-    .init();
-
-    match run() {
-        Ok(_) => {}
-        Err(err) => error!("{}", err),
+pub fn daemon() {
+    if let Err(err) = run() {
+        error!("{}", err)
     }
 }
 
