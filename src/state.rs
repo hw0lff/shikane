@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use crate::backend::ShikaneBackend;
 use crate::config::ShikaneConfig;
-use crate::daemon::ShikaneArgs;
+use crate::daemon::ShikaneDaemonArgs;
 use crate::error::ShikaneError;
 use crate::exec::execute_plan_commands;
 use crate::profile;
@@ -15,7 +15,7 @@ use log::{debug, error, info, trace, warn};
 
 #[derive(Debug)]
 pub struct ShikaneState {
-    pub args: ShikaneArgs,
+    pub args: ShikaneDaemonArgs,
     pub backend: ShikaneBackend,
     pub config: ShikaneConfig,
     loop_signal: LoopSignal,
@@ -45,7 +45,7 @@ pub enum StateInput {
 
 impl ShikaneState {
     pub fn new(
-        args: ShikaneArgs,
+        args: ShikaneDaemonArgs,
         backend: ShikaneBackend,
         config: ShikaneConfig,
         loop_signal: LoopSignal,

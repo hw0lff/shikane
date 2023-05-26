@@ -13,7 +13,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
 #[clap(version)]
-pub struct ShikaneArgs {
+pub struct ShikaneDaemonArgs {
     /// Path to config file
     #[clap(short, long, value_name = "PATH")]
     pub config: Option<PathBuf>,
@@ -37,7 +37,7 @@ pub fn daemon() {
 }
 
 fn run() -> Result<(), ShikaneError> {
-    let args = ShikaneArgs::parse();
+    let args = ShikaneDaemonArgs::parse();
     let config = ShikaneConfig::parse(args.config.clone())?;
 
     let mut event_loop: EventLoop<ShikaneState> = EventLoop::try_new()?;
