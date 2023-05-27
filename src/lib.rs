@@ -1,4 +1,5 @@
 pub(crate) mod backend;
+pub mod client;
 pub(crate) mod config;
 pub mod daemon;
 pub(crate) mod error;
