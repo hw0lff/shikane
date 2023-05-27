@@ -13,6 +13,8 @@ pub enum ShikaneError {
     TomlSerde(#[from] toml::de::Error),
     #[error("Unable to release resources associated with destroyed mode")]
     ReleaseOutputMode,
+    #[error("Cannot get socket path {0}")]
+    ShikaneUtil(#[from] crate::util::ShikaneUtilError),
     #[error("WaylandBackend: {0}")]
     WaylandBackend(#[from] ::wayland_client::backend::WaylandError),
     #[error("WaylandConnection: {0}")]

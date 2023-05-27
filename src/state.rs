@@ -19,12 +19,12 @@ pub struct ShikaneState {
     pub backend: ShikaneBackend,
     pub config: ShikaneConfig,
     loop_signal: LoopSignal,
-    state: State,
+    pub(crate) state: State,
     unchecked_plans: VecDeque<ShikaneProfilePlan>,
 }
 
 #[derive(Clone, Debug)]
-enum State {
+pub(crate) enum State {
     StartingUp,
     TestingProfile(ShikaneProfilePlan),
     ApplyingProfile(ShikaneProfilePlan),
