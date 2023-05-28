@@ -1,3 +1,4 @@
+use snafu::{prelude::*, Location};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -26,6 +27,33 @@ impl<T> From<calloop::InsertError<T>> for ShikaneError {
     fn from(err: calloop::InsertError<T>) -> Self {
         ShikaneError::EventLoop(err.into())
     }
+}
+
+#[derive(Debug, Snafu)]
+#[snafu(context(suffix(Ctx)))]
+#[snafu(visibility(pub(crate)))]
+pub(crate) enum ShikaneSocketError {
+    #[snafu(display("[{location}] Cannot connect to socket"))]
+    SocketConnect {
+        source: std::io::Error,
+        location: Location,
+    },
+    #[snafu(display("[{location}] Cannot read from socket"))]
+    SocketRead {
+        source: std::io::Error,
+        location: Location,
+    },
+    #[snafu(display("[{location}] Cannot write to socket"))]
+    SocketWrite {
+        source: std::io::Error,
+        location: Location,
+    },
+    #[snafu(display("[{location}] Cannot shutdown stream for {direction:?} directon(s)"))]
+    Shutdown {
+        source: std::io::Error,
+        location: Location,
+        direction: std::net::Shutdown,
+    },
 }
 
 pub(crate) fn report(error: &dyn snafu::Error) -> String {
