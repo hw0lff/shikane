@@ -56,6 +56,22 @@ pub(crate) enum ShikaneSocketError {
     },
 }
 
+#[derive(Debug, Snafu)]
+#[snafu(context(suffix(Ctx)))]
+#[snafu(visibility(pub(crate)))]
+pub(crate) enum ShikaneTomlError {
+    #[snafu(display("[{location}] Cannot serialize data to TOML"))]
+    TomlSerialize {
+        source: toml::ser::Error,
+        location: Location,
+    },
+    #[snafu(display("[{location}] Cannot deserialize data from TOML"))]
+    TomlDeserialize {
+        source: toml::de::Error,
+        location: Location,
+    },
+}
+
 pub(crate) fn report(error: &dyn snafu::Error) -> String {
     let sources = snafu::ChainCompat::new(error);
     let sources: Vec<&dyn snafu::Error> = sources.collect();
