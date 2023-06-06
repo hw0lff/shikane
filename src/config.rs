@@ -9,7 +9,7 @@ use crate::profile::Profile;
 
 #[derive(Default, Debug, Deserialize)]
 pub struct ShikaneConfig {
-    #[serde(rename = "profile")]
+    #[serde(default, rename = "profile")]
     pub profiles: Vec<Profile>,
 }
 
