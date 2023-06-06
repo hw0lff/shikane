@@ -72,6 +72,22 @@ pub(crate) enum ShikaneTomlError {
     },
 }
 
+#[derive(Debug, Snafu)]
+#[snafu(context(suffix(Ctx)))]
+#[snafu(visibility(pub(crate)))]
+pub(crate) enum ShikaneRonError {
+    #[snafu(display("[{location}] Cannot serialize data to RON"))]
+    RonSerialize {
+        source: ron::Error,
+        location: Location,
+    },
+    #[snafu(display("[{location}] Cannot deserialize data from RON"))]
+    RonDeserialize {
+        source: ron::error::SpannedError,
+        location: Location,
+    },
+}
+
 pub(crate) fn report(error: &dyn snafu::Error) -> String {
     let sources = snafu::ChainCompat::new(error);
     let sources: Vec<&dyn snafu::Error> = sources.collect();
