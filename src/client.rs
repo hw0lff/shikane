@@ -12,9 +12,9 @@ use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
 #[derive(Debug, Parser)]
-#[clap(version)]
+#[command(version)]
 struct ShikaneClientArgs {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     cmd: ShikaneCommand,
 }
 
