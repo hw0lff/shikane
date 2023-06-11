@@ -10,7 +10,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, crane, flake-utils, fenix, ... }:
+  outputs = { self, nixpkgs, crane, flake-utils, fenix, ... }@inputs:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
@@ -30,35 +30,14 @@
             "llvm-tools-preview"
           ]);
           craneLib = crane.lib.${system}.overrideToolchain fenixToolchain;
+          shikane = pkgs.callPackage ./nix-modules/shikane.nix { inherit craneLib pkgs; };
         in
         rec
         {
-          packages = rec {
-            default = pkgs.symlinkJoin {
-              name = "shikane";
-              paths = [ packages.shikane packages.shikane-docs ];
-            };
-            shikane = craneLib.buildPackage {
-              name = "shikane";
-              src = craneLib.cleanCargoSource ./.;
-              doCheck = false;
-              cargoVendorDir = craneLib.vendorCargoDeps { cargoLock = ./Cargo.lock; };
-            };
-            shikane-docs = pkgs.stdenv.mkDerivation {
-              name = "shikane-docs";
-              src = ./.;
-              nativeBuildInputs = with pkgs; [ pandoc installShellFiles ];
-              buildPhase = ''
-                runHook preBuild
-                bash scripts/build-docs.sh man ${packages.shikane.version}
-                runHook postBuild
-              '';
-              installPhase = ''
-                runHook preInstall
-                installManPage build/*
-                runHook postInstall
-              '';
-            };
+          packages = {
+            default = shikane.default;
+            shikane = shikane.shikane;
+            shikane-docs = shikane.shikane-docs;
           };
 
           devShells.default = pkgs.mkShell {
