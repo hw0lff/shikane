@@ -39,6 +39,7 @@
             default = shikane-pkg.default;
             shikane = shikane-pkg.shikane;
             shikane-docs = shikane-pkg.shikane-docs;
+            shikane-nextest-archive = shikane-pkg.shikane-nextest-archive;
             testosteron-vm = testosteron-vm;
           };
 
@@ -47,7 +48,6 @@
             type = "app";
             program = "${self.packages.${system}.testosteron-vm}/bin/run-testosteron-vm";
           };
-
 
           devShells.default = pkgs.mkShell {
             nativeBuildInputs = (with packages.shikane; nativeBuildInputs ++ buildInputs) ++ [ fenixToolchain ];

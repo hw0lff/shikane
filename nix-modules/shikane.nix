@@ -9,13 +9,23 @@ let
 
   cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { });
 
-  shikane-clippy = craneLib.cargoClippy (commonArgs // {
-    inherit cargoArtifacts;
-  });
+  cargoNextestArchive = pkgs.callPackage ./cargoNextestArchive.nix {
+    inherit craneLib;
+    cargo-nextest = pkgs.cargo-nextest;
+  };
 
   shikane = craneLib.buildPackage (commonArgs // {
     inherit cargoArtifacts;
   });
+
+  shikane-clippy = craneLib.cargoClippy (commonArgs // {
+    inherit cargoArtifacts;
+  });
+
+  shikane-nextest-archive = cargoNextestArchive (commonArgs // {
+    inherit cargoArtifacts;
+  });
+
 
   shikane-docs = pkgs.stdenv.mkDerivation {
     name = "shikane-docs";
@@ -41,4 +51,5 @@ in
   shikane = shikane;
   shikane-docs = shikane-docs;
   shikane-clippy = shikane-clippy;
+  shikane-nextest-archive = shikane-nextest-archive;
 }
