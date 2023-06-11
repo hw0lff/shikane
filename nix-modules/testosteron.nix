@@ -15,6 +15,7 @@ in
   imports = [
     "${modulesPath}/virtualisation/qemu-vm.nix"
     ./sway.nix
+    ./zsh.nix
   ];
 
   nix = {
