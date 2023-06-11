@@ -30,15 +30,24 @@
             "llvm-tools-preview"
           ]);
           craneLib = crane.lib.${system}.overrideToolchain fenixToolchain;
-          shikane = pkgs.callPackage ./nix-modules/shikane.nix { inherit craneLib pkgs; };
+          shikane-pkg = pkgs.callPackage ./nix-modules/shikane.nix { inherit craneLib pkgs; };
+          testosteron-vm = self.nixosConfigurations.testosteron.config.system.build.vm;
         in
         rec
         {
           packages = {
-            default = shikane.default;
-            shikane = shikane.shikane;
-            shikane-docs = shikane.shikane-docs;
+            default = shikane-pkg.default;
+            shikane = shikane-pkg.shikane;
+            shikane-docs = shikane-pkg.shikane-docs;
+            testosteron-vm = testosteron-vm;
           };
+
+          apps.default = apps.test;
+          apps.test = {
+            type = "app";
+            program = "${self.packages.${system}.testosteron-vm}/bin/run-testosteron-vm";
+          };
+
 
           devShells.default = pkgs.mkShell {
             nativeBuildInputs = (with packages.shikane; nativeBuildInputs ++ buildInputs) ++ [ fenixToolchain ];
@@ -49,5 +58,13 @@
         inherit (self.packages.${prev.system})
           shikane;
       });
+
+      nixosConfigurations.testosteron = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        specialArgs = { inherit inputs; };
+        modules = [
+          ./nix-modules/testosteron.nix
+        ];
+      };
     };
 }
