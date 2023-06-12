@@ -30,14 +30,17 @@ pub struct ShikaneDaemonArgs {
     pub skip_tests: bool,
 }
 
-pub fn daemon() {
-    if let Err(err) = run() {
+pub fn daemon(args: Option<ShikaneDaemonArgs>) {
+    if let Err(err) = run(args) {
         error!("{}", err)
     }
 }
 
-fn run() -> Result<(), ShikaneError> {
-    let args = ShikaneDaemonArgs::parse();
+fn run(args: Option<ShikaneDaemonArgs>) -> Result<(), ShikaneError> {
+    let args = match args {
+        Some(args) => args,
+        None => ShikaneDaemonArgs::parse(),
+    };
     let config = ShikaneConfig::parse(args.config.clone())?;
 
     let mut event_loop: EventLoop<ShikaneState> = EventLoop::try_new()?;
