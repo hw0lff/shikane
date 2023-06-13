@@ -84,7 +84,6 @@ in
     diskSize = 1024;
     memorySize = 2048;
     cores = 2;
-    graphics = false;
     forwardPorts = [
       { from = "host"; host.port = 2222; guest.port = 22; }
     ];
@@ -94,11 +93,11 @@ in
     # "-device qxl,vgamem_mb=128,ram_size_mb=512,vram_size_mb=256"
     "-device qxl,vgamem_mb=${toString vgamem},ram_size_mb=${toString ram_size},vram_size_mb=${toString vram_size}"
     "-machine type=q35"
-  ];
 
-  services.journald.extraConfig = ''
-    ForwardToConsole=yes
-  '';
+    # needed for daemonize to not open a graphical display
+    "-display none"
+    "-daemonize -pidfile /tmp/testosteron.pid"
+  ];
 
   system.stateVersion = "23.05";
 }
