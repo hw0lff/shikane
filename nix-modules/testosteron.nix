@@ -47,43 +47,48 @@ in
 
   time.timeZone = "UTC";
 
-  networking.hostName = "testosteron";
-  networking.interfaces.eth0.useDHCP = true;
-  networking.defaultGateway = null;
-
-  services.openssh.enable = true;
-  services.openssh.settings.PasswordAuthentication = true;
-  services.openssh.settings.PermitRootLogin = "yes";
-
-  users.mutableUsers = false;
-  users.users.root.password = "";
-  users.groups.testy = { };
-  users.users.testy = {
-    group = "testy";
-    isNormalUser = true;
-    password = "";
-    extraGroups = [ "video" "input" ];
+  networking = {
+    hostName = "testosteron";
+    interfaces.eth0.useDHCP = true;
+    defaultGateway = null;
   };
-  users.motd = ''
-    testosteron: The testing vm for funky graphics
-    Now with 100% more graphics!
 
-    SSH: localhost:2222
+  services.openssh = {
+    enable = true;
+    settings.PasswordAuthentication = true;
+    settings.PermitRootLogin = "yes";
+  };
 
-    root password is "" (empty)
-    testy password is "" (empty)
-  '';
+  users = {
+    mutableUsers = false;
+    users.root.password = "";
+    groups.testy = { };
+    users.testy = {
+      group = "testy";
+      isNormalUser = true;
+      password = "";
+      extraGroups = [ "video" "input" ];
+    };
+    motd = ''
+      testosteron: The testing vm for funky graphics
+      Now with 100% more graphics!
+
+      SSH: localhost:2222
+
+      root password is "" (empty)
+      testy password is "" (empty)
+    '';
+  };
 
   virtualisation = {
     diskSize = 1024;
     memorySize = 2048;
     cores = 2;
     graphics = false;
+    forwardPorts = [
+      { from = "host"; host.port = 2222; guest.port = 22; }
+    ];
   };
-
-  virtualisation.forwardPorts = [
-    { from = "host"; host.port = 2222; guest.port = 22; }
-  ];
 
   virtualisation.qemu.options = [
     # "-device qxl,vgamem_mb=128,ram_size_mb=512,vram_size_mb=256"
