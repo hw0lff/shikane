@@ -15,6 +15,7 @@ in
   imports = [
     "${modulesPath}/virtualisation/qemu-vm.nix"
     ./sway.nix
+    ./testy.nix
     ./zsh.nix
   ];
 
@@ -37,6 +38,7 @@ in
     fd
     ripgrep
     pciutils
+    nmap
   ];
 
   boot.loader.systemd-boot.enable = true;
@@ -49,6 +51,7 @@ in
 
   networking = {
     hostName = "testosteron";
+    useNetworkd = true; # needed to wait for network-online.target
     interfaces.eth0.useDHCP = true;
     defaultGateway = null;
   };
@@ -73,7 +76,8 @@ in
       testosteron: The testing vm for funky graphics
       Now with 100% more graphics!
 
-      SSH: localhost:2222
+      SSH:       localhost:2222
+      test-log:  localhost:2233
 
       root password is "" (empty)
       testy password is "" (empty)
@@ -86,6 +90,17 @@ in
     cores = 2;
     forwardPorts = [
       { from = "host"; host.port = 2222; guest.port = 22; }
+      {
+        from = "guest";
+        host = {
+          address = "127.0.0.1";
+          port = 23456; # not used by anything here
+        };
+        guest = {
+          address = "10.0.2.15";
+          port = 2233;
+        };
+      }
     ];
   };
 
