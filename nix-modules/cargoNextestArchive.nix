@@ -33,6 +33,8 @@ craneLib.mkCargoDerivation (args // {
     mkdir -p $out
     cargo nextest --version
     cargo nextest ${nextestArgs}
+    cp -r .config/ $out
+    cp -r tests/ $out
   '';
 
   # Append the `cargo-nextest` package to the nativeBuildInputs set by the
