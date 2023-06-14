@@ -17,7 +17,18 @@ let
     doCheck = false;
   };
 
-  cargoArtifacts = craneLib.buildDepsOnly (commonArgs // { });
+  cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+    # this is a hack to include the cargo-nextest artifacts in `cargoArtifacts`
+    doCheck = true;
+    checkPhaseCargoCommand = ''
+      mkdir -p $out
+      cargo nextest --version
+      cargo nextest archive ${"$" + "{CARGO_PROFILE:+--cargo-profile $CARGO_PROFILE}"} --archive-file /tmp/archive.tar.zst
+    '';
+    buildInputs = [
+      pkgs.cargo-nextest
+    ];
+  });
 
   cargoNextestArchive = pkgs.callPackage ./cargoNextestArchive.nix {
     inherit craneLib;
