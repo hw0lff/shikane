@@ -39,6 +39,8 @@ in
     };
   };
 
+  boot.blacklistedKernelModules = [ "bochs" ];
+
   users.users.testy.packages = [ pkgs.cargo-nextest ];
   systemd.user.services.cargo-nextest = {
     enable = true;
