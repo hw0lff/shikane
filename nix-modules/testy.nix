@@ -61,6 +61,7 @@ in
       ExecStopPost = "/run/wrappers/bin/sudo systemctl --no-block poweroff";
     };
     environment = {
+      PATH = pkgs.lib.mkForce "/run/wrappers/bin:/home/testy/.nix-profile/bin:/etc/profiles/per-user/testy/bin:/nix/var/nix/profiles/default/bin:/run/current-system/sw/bin";
       CARGO_TERM_COLOR = "always";
     };
   };
