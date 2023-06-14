@@ -16,6 +16,8 @@ let
       rm -rf ${nextestWorkspace}
       mkdir -p ${nextestWorkspace}
       cp -r ${cargoSource}/* ${nextestWorkspace}/
+      cp -r ${archive}/tests/ ${nextestWorkspace}/
+      cp -r ${archive}/.config/ ${nextestWorkspace}/
     '';
 
   nextestWrapper = pkgs.writeShellScript "nextest-wrapper"
