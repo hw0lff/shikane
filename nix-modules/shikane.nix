@@ -1,8 +1,18 @@
 { craneLib, pkgs, ... }:
 
 let
+  testsFilter = path: _type:
+    (builtins.match ''^/nix/store/[^/]+/tests(|.*)'' path != null);
+  nextestTomlFilter = path: _type:
+    (builtins.match ''.*/nextest.toml'' path != null);
+  testsOrCargo = path: type:
+    (testsFilter path type) || (nextestTomlFilter path type) || (craneLib.filterCargoSources path type);
+
   commonArgs = {
-    src = craneLib.cleanCargoSource (craneLib.path ./..);
+    src = pkgs.lib.cleanSourceWith {
+      src = craneLib.path ./..;
+      filter = testsOrCargo;
+    };
     cargoVendorDir = craneLib.vendorCargoDeps { cargoLock = ./../Cargo.lock; };
     doCheck = false;
   };
