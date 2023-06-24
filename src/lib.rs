@@ -1,9 +1,11 @@
 pub(crate) mod backend;
+pub mod client;
 pub(crate) mod config;
 pub mod daemon;
 pub(crate) mod error;
 pub(crate) mod exec;
 pub(crate) mod hk;
+pub(crate) mod ipc;
 pub(crate) mod profile;
 pub(crate) mod state;
 pub mod util;
