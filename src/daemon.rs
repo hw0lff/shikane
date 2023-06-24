@@ -1,40 +1,46 @@
-mod args;
-mod backend;
-mod config;
-mod error;
-mod exec;
-mod hk;
-mod profile;
-mod state;
-use backend::ShikaneBackend;
-use clap::Parser;
-use error::ShikaneError;
-use state::ShikaneState;
+use crate::backend::ShikaneBackend;
+use crate::config::ShikaneConfig;
+use crate::error::ShikaneError;
+use crate::state::ShikaneState;
 
 use calloop::{channel, EventLoop};
+use clap::Parser;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 
-use crate::{args::ShikaneArgs, config::ShikaneConfig};
+use std::path::PathBuf;
 
-fn main() {
-    env_logger::Builder::from_env(
-        env_logger::Env::new()
-            .filter_or("SHIKANE_LOG", "warn")
-            .write_style_or("SHIKANE_LOG_STYLE", "auto"),
-    )
-    .format_timestamp(Some(env_logger::TimestampPrecision::Millis))
-    .init();
+#[derive(Debug, Parser)]
+#[clap(version)]
+pub struct ShikaneDaemonArgs {
+    /// Path to config file
+    #[clap(short, long, value_name = "PATH")]
+    pub config: Option<PathBuf>,
 
-    match run() {
-        Ok(_) => {}
-        Err(err) => error!("{}", err),
+    /// Enable oneshot mode
+    ///
+    /// Exit after a profile has been applied or
+    /// if no profile was matched
+    #[clap(short, long)]
+    pub oneshot: bool,
+
+    /// Apply profiles untested
+    #[clap(short, long, parse(try_from_str), default_value = "true", hide = true)]
+    pub skip_tests: bool,
+}
+
+pub fn daemon(args: Option<ShikaneDaemonArgs>) {
+    if let Err(err) = run(args) {
+        error!("{}", err)
     }
 }
 
-fn run() -> Result<(), ShikaneError> {
-    let args = ShikaneArgs::parse();
+fn run(args: Option<ShikaneDaemonArgs>) -> Result<(), ShikaneError> {
+    let args = match args {
+        Some(args) => args,
+        None => ShikaneDaemonArgs::parse(),
+    };
     let config = ShikaneConfig::parse(args.config.clone())?;
 
     let mut event_loop: EventLoop<ShikaneState> = EventLoop::try_new()?;
