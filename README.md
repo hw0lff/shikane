@@ -52,7 +52,7 @@ man 5 shikane
 
 ## Building
 Dependencies:
-- a rust toolchain >=1.60
+- a rust toolchain >=1.70
 - pandoc (for building the man pages)
 
 Building shikane:

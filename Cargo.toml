@@ -7,7 +7,7 @@ repository = "https://gitlab.com/w0lff/shikane"
 description = "Dynamic output configuration tool for Wayland compositors"
 license = "MIT"
 readme = "README.md"
-rust-version = "1.60"
+rust-version = "1.70"
 categories = ["command-line-utilities"]
 keywords = ["wayland", "wlroots", "sway"]
 
