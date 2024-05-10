@@ -1,3 +1,4 @@
+pub mod client;
 pub mod daemon;
 pub(crate) mod error;
 pub mod execute;
