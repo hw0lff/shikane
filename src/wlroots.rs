@@ -6,14 +6,14 @@ mod wl_registry;
 
 use std::collections::VecDeque;
 
+use calloop_wayland_source::WaylandSource;
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
 use snafu::{prelude::*, Location};
-use wayland_client::backend::WaylandError;
+use wayland_client::backend::{ObjectId, WaylandError};
 use wayland_client::globals::BindError;
 use wayland_client::protocol::wl_output::Transform as WlTransform;
-use wayland_client::{backend::ObjectId, Connection, QueueHandle};
-use wayland_client::{Proxy, WaylandSource};
+use wayland_client::{Connection, Proxy, QueueHandle};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::AdaptiveSyncState as WlAdaptiveSyncState;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
@@ -83,15 +83,12 @@ impl WlrootsBackend {
             wl_store: Default::default(),
             wlr_output_manager,
             wlr_output_manager_serial: Default::default(),
-            connection,
+            connection: connection.clone(),
             queue_handle,
             event_queue: Default::default(),
         };
 
-        Ok((
-            backend,
-            WaylandSource::new(event_queue).context(WaylandSourceCtx)?,
-        ))
+        Ok((backend, WaylandSource::new(connection, event_queue)))
     }
 
     fn export_wl_heads(&self) -> Option<VecDeque<WlHead>> {
@@ -290,11 +287,6 @@ pub enum WlrootsBackendError {
     #[snafu(display("[{location}] Cannot connect to Wayland server"))]
     WaylandConnection {
         source: wayland_client::ConnectError,
-        location: Location,
-    },
-    #[snafu(display("[{location}] Cannot create Wayland source from event queue"))]
-    WaylandSource {
-        source: wayland_client::backend::WaylandError,
         location: Location,
     },
     #[snafu(display("[{location}] Failed to flush connection to Wayland server"))]

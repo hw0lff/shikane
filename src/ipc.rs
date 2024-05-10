@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::io::{Read, Write};
 use std::net::Shutdown;
-use std::os::fd::AsRawFd;
+use std::os::fd::AsFd;
 use std::os::unix::net::UnixStream;
 use std::path::PathBuf;
 
@@ -99,9 +99,9 @@ impl From<IpcStream> for calloop::generic::Generic<IpcStream> {
     }
 }
 
-impl AsRawFd for IpcStream {
-    fn as_raw_fd(&self) -> std::os::unix::prelude::RawFd {
-        self.stream.as_raw_fd()
+impl AsFd for IpcStream {
+    fn as_fd(&self) -> std::os::unix::prelude::BorrowedFd<'_> {
+        self.stream.as_fd()
     }
 }
 

@@ -18,7 +18,7 @@ use super::state_machine::{DSMState, DaemonStateMachine};
 type Dsm<T> = DaemonStateMachine<T>;
 
 pub fn handle_listener(
-    listener: &mut UnixListener,
+    listener: &UnixListener,
     el_handle: &LoopHandle<Dsm<impl WlBackend>>,
 ) -> Result<(), Box<dyn snafu::Error>> {
     let (stream, _) = listener.accept().context(SocketAcceptCtx)?;
@@ -28,7 +28,9 @@ pub fn handle_listener(
     trace!("[EventLoop] Inserting IPC client");
     el_handle
         .insert_source(stream_event_source, |_, stream, state| {
-            if let Err(err) = handle_client(stream, state) {
+            // This is safe because the inner stream does not get dropped.
+            // Also, this source gets immediately removed from the event loop at the end of this closure.
+            if let Err(err) = handle_client(unsafe { stream.get_mut() }, state) {
                 let err = error::report(err.as_ref());
                 warn!("IPC error({})", err);
             }
