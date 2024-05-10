@@ -1,4 +1,13 @@
+pub mod daemon;
 pub(crate) mod error;
 pub mod execute;
+pub(crate) mod ipc;
+pub mod matching;
+pub mod pipeline;
+pub mod profile;
 pub mod search;
+pub mod settings;
 pub mod util;
+pub mod variant;
+pub mod wl_backend;
+pub mod wlroots;
