@@ -13,13 +13,13 @@ use super::{
 pub enum ParseSingleSearchError {
     FieldSet { source: FieldSetError },
     Regex { source: regex::Error },
-    MissingSearchKind,
 }
 
 impl FromStr for SingleSearch {
     type Err = ParseSingleSearchError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let original_str = s.to_string();
         let mut chars = s.chars().peekable();
         let mut fieldset = FieldSet::default();
         let kind = loop {
@@ -42,19 +42,32 @@ impl FromStr for SingleSearch {
             }
         };
 
-        let mut method = CompareMethod::Exact;
-        if fieldset.is_empty() {
+        let s: String;
+        let search_kind: SearchKind;
+        let method;
+        if let Some(k) = kind {
+            search_kind = k;
+            if fieldset.is_empty() {
+                fieldset.fill_default();
+                method = CompareMethod::AtleastOne;
+            } else {
+                method = CompareMethod::Exact;
+            }
+            s = chars.collect();
+        } else {
+            // no search kind detected, default to full text search
             fieldset.fill_default();
+            search_kind = SearchKind::Fulltext;
             method = CompareMethod::AtleastOne;
+            s = original_str;
         }
-        let kind = kind.ok_or(ParseSingleSearchError::MissingSearchKind)?;
-        let s: String = chars.collect();
-        let sp = match kind {
+
+        let sp = match search_kind {
             SearchKind::Regex => SearchPattern::Regex(regex::Regex::new(&s).context(RegexCtx)?),
             SearchKind::Substring => SearchPattern::Substring(s),
             SearchKind::Fulltext => SearchPattern::Fulltext(s),
         };
-        Ok(SingleSearch::new(fieldset, kind, sp, method))
+        Ok(SingleSearch::new(fieldset, search_kind, sp, method))
     }
 }
 
@@ -113,6 +126,8 @@ mod tests {
     #[case("mv/company", [M,V], Rx, 7)]
     #[case("m/%=model", [M], Rx, 7)]
     #[case("m/=%model", [M], Rx, 7)]
+    #[case("DP-1", [D,N,V,M,S], Ft, 4)]
+    #[case("vsDP-1", [D,N,V,M,S], Ft, 6)]
     fn parse_single_search_from_str_ok(
         #[case] s: &str,
         #[case] fields: impl AsRef<[SF]>,
