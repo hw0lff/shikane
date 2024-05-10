@@ -482,7 +482,6 @@ dependencies = [
  "ron",
  "serde",
  "snafu",
- "thiserror",
  "toml",
  "wayland-client",
  "wayland-protocols-wlr",
