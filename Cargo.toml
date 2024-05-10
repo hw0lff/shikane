@@ -16,6 +16,7 @@ calloop = "0.10.4"
 clap = { version = "4", features = ["derive"] }
 env_logger = "0.10.0"
 hopcroft-karp = "0.2.1"
+itertools = "0.12.1"
 log = "0.4.17"
 regex = "1.7.0"
 ron = "0.8.0"
