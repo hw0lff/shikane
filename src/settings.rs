@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 use std::path::PathBuf;
+use std::time::Duration;
 
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
@@ -7,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use snafu::{prelude::*, Location};
 use xdg::BaseDirectories;
 
-use crate::daemon::Shikane;
+use crate::daemon::ShikaneArgs;
 use crate::error;
 use crate::profile::Profile;
 
@@ -16,17 +17,19 @@ pub struct Settings {
     pub profiles: VecDeque<Profile>,
     pub skip_tests: bool,
     pub oneshot: bool,
+    pub timeout: Duration,
     pub config_path: PathBuf,
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct SettingsToml {
+    pub timeout: Option<u64>,
     #[serde(default, rename = "profile")]
     pub profiles: VecDeque<Profile>,
 }
 
 impl Settings {
-    pub fn from_args(args: Shikane) -> Self {
+    pub fn from_args(args: ShikaneArgs) -> Self {
         let (config, path) = match parse_settings_toml(args.config) {
             Ok(config) => config,
             Err(err) => {
@@ -35,10 +38,13 @@ impl Settings {
             }
         };
 
+        let timeout = config.timeout.unwrap_or(args.timeout);
+
         Self {
             profiles: config.profiles,
             skip_tests: args.skip_tests,
             oneshot: args.oneshot,
+            timeout: Duration::from_millis(timeout),
             config_path: path,
         }
     }

@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::fmt::Display;
 
 #[allow(unused_imports)]
@@ -55,12 +56,11 @@ impl<B: WlBackend> DaemonStateMachine<B> {
     /// The returned bool tells the caller if the state machine has been shutdown.
     /// It cannot and will not keep running once it returns true.
     #[must_use]
-    pub fn process_event_queue(&mut self) -> bool {
+    pub fn process_event_queue(&mut self, eq: VecDeque<WlBackendEvent>) -> bool {
         if self.has_shutdown() {
             return self.has_shutdown();
         }
 
-        let eq = self.backend.drain_event_queue();
         if eq.contains(&WlBackendEvent::NeededResourceFinished) {
             warn!("A needed resource finished. Shutting down.");
             self.state = self.shutdown();

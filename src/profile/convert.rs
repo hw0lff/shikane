@@ -57,6 +57,7 @@ impl Converter {
 
         let p = Profile::new(self.settings.profile_name.clone(), outputs);
         let sc = SettingsToml {
+            timeout: None,
             profiles: vec![p].into(),
         };
         let settings_string = toml::to_string(&sc).context(TomlSerializeCtx)?;

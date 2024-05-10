@@ -14,12 +14,13 @@ use crate::wl_backend::WlBackend;
 
 use super::profile_manager::{ProfileManager, Restriction};
 use super::state_machine::{DSMState, DaemonStateMachine};
+use super::Shikane;
 
 type Dsm<T> = DaemonStateMachine<T>;
 
 pub fn handle_listener(
     listener: &UnixListener,
-    el_handle: &LoopHandle<Dsm<impl WlBackend>>,
+    el_handle: &LoopHandle<Shikane<impl WlBackend>>,
 ) -> Result<(), Box<dyn snafu::Error>> {
     let (stream, _) = listener.accept().context(SocketAcceptCtx)?;
     let ipc: IpcStream = stream.into();
@@ -27,10 +28,10 @@ pub fn handle_listener(
 
     trace!("[EventLoop] Inserting IPC client");
     el_handle
-        .insert_source(stream_event_source, |_, stream, state| {
-            // This is safe because the inner stream does not get dropped.
-            // Also, this source gets immediately removed from the event loop at the end of this closure.
-            if let Err(err) = handle_client(unsafe { stream.get_mut() }, state) {
+        .insert_source(stream_event_source, |_, stream, shikane| {
+            // this is safe because the inner stream does not get dropped
+            // also this source gets immediately removed at the end of this closure
+            if let Err(err) = handle_client(unsafe { stream.get_mut() }, &mut shikane.dsm) {
                 let err = error::report(err.as_ref());
                 warn!("IPC error({})", err);
             }
