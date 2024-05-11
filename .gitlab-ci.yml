@@ -1,0 +1,16 @@
+image:
+  name: pandoc/core:3.1.13
+  entrypoint: ["/bin/sh", "-c"]
+before_script:
+  - apk add bash
+pages:
+  stage: deploy
+  script:
+    - scripts/build-docs.sh html
+    - mkdir public/
+    - mv build/html/* public/
+  artifacts:
+    paths:
+      - public
+  only:
+    - tags
