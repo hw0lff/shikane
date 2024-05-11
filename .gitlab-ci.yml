@@ -1,0 +1,18 @@
+image:
+  name: pandoc/core:3.1.13
+  entrypoint: ["/bin/sh", "-c"]
+before_script:
+  - apk add bash
+pages:
+  stage: deploy
+  script:
+    - scripts/build-docs.sh html
+    - mkdir public/
+    - mv build/html/* public/
+  artifacts:
+    paths:
+      - public
+  rules:
+      # deploy only if the commit is tagged with a version (e.g. 'v0.1.2')
+      # && commit is on default branch
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/ && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
