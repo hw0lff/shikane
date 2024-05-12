@@ -73,6 +73,15 @@ all of them.
     shikanectl reload
     ```
 
+## Documentation
+Documentation is provided as man pages:
+```sh
+man 1 shikane
+man 5 shikane
+man 1 shikanectl
+```
+They are also [viewable online].
+
 ## Installation
 Via your `$AURhelper` from the [AUR]:
 ```sh
@@ -82,14 +91,6 @@ $AURhelper -S shikane
 Via cargo from [crates.io] (without man pages):
 ```sh
 cargo install shikane
-```
-
-## Documentation
-Documentation is provided as man pages:
-```sh
-man 1 shikane
-man 5 shikane
-man 1 shikanectl
 ```
 
 ## Building
@@ -151,4 +152,5 @@ MIT
 [crates.io]: https://crates.io/crates/shikane
 [kanshi]: https://sr.ht/~emersion/kanshi
 [TOML]: https://toml.io
+[viewable online]: https://w0lff.gitlab.io/shikane
 [wayland-rs]: https://github.com/Smithay/wayland-rs
