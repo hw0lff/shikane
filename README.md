@@ -1,5 +1,5 @@
 # shikane
-A dynamic output configuration tool focusing on accuracy and determinism.
+shikane (/ʃiˈkaːnə/) is a dynamic output configuration tool focusing on accuracy and determinism.
 
 It automatically detects and configures connected displays based on a set of
 profiles. Each profile specifies a set of outputs with additional parameters
