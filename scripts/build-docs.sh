@@ -64,7 +64,7 @@ buildhtml() {
         )
         pandoc "${page_opts[@]}"
     done
-    pandoc "${html_opts[@]}" "$docs/index.md" -o "$out/index.html"
+    pandoc "${html_opts[@]}" --lua-filter="$meta/links-to-html.lua" "$docs/index.md" -o "$out/index.html"
 }
 
 
