@@ -29,7 +29,7 @@
             "rust-src"
             "llvm-tools-preview"
           ]);
-          craneLib = crane.lib.${system}.overrideToolchain fenixToolchain;
+          craneLib = (crane.mkLib nixpkgs.legacyPackages.${system}).overrideToolchain fenixToolchain;
           shikane = pkgs.callPackage ./nix-modules/shikane.nix { inherit craneLib pkgs; };
         in
         rec
