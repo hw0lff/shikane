@@ -1,7 +1,6 @@
-use snafu::{prelude::*, Location};
-
 #[allow(unused_imports)]
 use log::{debug, error, info, trace, warn};
+use snafu::{prelude::*, Location};
 
 pub fn setup_logging() {
     env_logger::Builder::from_env(
@@ -13,7 +12,7 @@ pub fn setup_logging() {
     .init();
 }
 
-pub(crate) fn get_socket_path() -> Result<std::path::PathBuf, ShikaneUtilError> {
+pub(crate) fn get_socket_path() -> Result<std::path::PathBuf, UtilError> {
     let wayland_display = "WAYLAND_DISPLAY";
     let wayland_display = std::env::var(wayland_display).context(EnvVarCtx {
         var: wayland_display,
@@ -29,7 +28,7 @@ pub(crate) fn get_socket_path() -> Result<std::path::PathBuf, ShikaneUtilError> 
 #[derive(Debug, Snafu)]
 #[snafu(context(suffix(Ctx)))]
 #[snafu(visibility(pub(crate)))]
-pub enum ShikaneUtilError {
+pub enum UtilError {
     #[snafu(display("[{location}] Problem with XDG directories"))]
     BaseDirectories {
         source: xdg::BaseDirectoriesError,

@@ -1,311 +1,65 @@
-use std::collections::VecDeque;
+mod convert;
+mod mode;
+
 use std::fmt::Display;
+use std::num::ParseIntError;
+use std::str::FromStr;
 
-use crate::backend::output_head::OutputHead;
-use crate::backend::output_mode::OutputMode;
-use crate::backend::ShikaneBackend;
-use crate::error::ShikaneError;
-use crate::hk::HKMap;
+use serde::de::{self, MapAccess, Visitor};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use snafu::prelude::*;
 
-use serde::Deserialize;
-use wayland_client::protocol::wl_output::Transform;
-use wayland_client::Proxy;
-use wayland_protocols_wlr::output_management::v1::client::zwlr_output_configuration_v1::ZwlrOutputConfigurationV1;
-use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::AdaptiveSyncState;
-use wayland_protocols_wlr::output_management::v1::client::zwlr_output_mode_v1::ZwlrOutputModeV1;
+use crate::search::Search;
 
-#[allow(unused_imports)]
-use log::{debug, error, info, trace, warn};
+pub use self::convert::{ConvertError, Converter, ConverterSettings};
+pub use self::mode::Mode;
 
-#[derive(Clone, Default, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct Profile {
+    pub name: String,
+    #[serde(skip)]
+    pub index: usize,
+    #[serde(rename = "exec")]
+    pub commands: Option<Vec<String>>,
+    // table must come last in toml
+    #[serde(rename = "output")]
+    pub outputs: Vec<Output>,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct Output {
+    pub enable: bool,
+    #[serde(rename = "search", alias = "match")]
+    pub search_pattern: Search,
+    #[serde(rename = "exec")]
+    pub commands: Option<Vec<String>>,
+    pub mode: Option<Mode>,
+    pub position: Option<Position>,
+    pub scale: Option<f64>,
+    pub transform: Option<Transform>,
+    pub adaptive_sync: Option<AdaptiveSyncState>,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+pub struct PhysicalSize {
+    pub width: i32,
+    pub height: i32,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Position {
     pub x: i32,
     pub y: i32,
 }
-#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
-pub struct Mode {
-    pub width: i32,
-    pub height: i32,
-    pub refresh: f32,
-    #[serde(default)]
-    pub custom: bool,
-}
-#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
-pub struct Output {
-    pub enable: bool,
-    pub r#match: String,
-    pub exec: Option<Vec<String>>,
-    pub mode: Option<Mode>,
-    pub position: Option<Position>,
-    pub scale: Option<f64>,
-    #[serde(default, with = "option_transform")]
-    pub transform: Option<Transform>,
-    pub adaptive_sync: Option<bool>,
-}
-#[derive(Clone, Default, Debug, Deserialize, PartialEq)]
-pub struct Profile {
-    pub name: String,
-    #[serde(rename = "output")]
-    pub outputs: Vec<Output>,
-    pub exec: Option<Vec<String>>,
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AdaptiveSyncState {
+    Disabled,
+    Enabled,
 }
 
-#[derive(Clone, Debug)]
-pub struct ShikaneProfilePlan {
-    pub profile: Profile,
-    pub config_set: Vec<OutputMatching>,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct OutputMatching(pub Output, pub OutputHead, pub Option<ZwlrOutputModeV1>);
-
-impl ShikaneProfilePlan {
-    pub fn configure(
-        &self,
-        backend: &mut ShikaneBackend,
-    ) -> Result<ZwlrOutputConfigurationV1, ShikaneError> {
-        let configuration = backend.create_configuration();
-        debug!("Configuring profile: {}", self.profile.name);
-
-        for OutputMatching(output, o_head, wlr_mode) in self.config_set.iter() {
-            let wlr_head = &o_head.wlr_head;
-            // Cannot configure a head that is not alive
-            if !wlr_head.is_alive() {
-                return Err(ShikaneError::Configuration(self.profile.name.clone()));
-            }
-
-            // Disable the head if is disabled in the config
-            if !output.enable {
-                configuration.disable_head(wlr_head);
-                continue;
-            }
-
-            // Enable the head and set its properties
-            let configuration_head = configuration.enable_head(wlr_head, &backend.qh, backend.data);
-
-            // Mode
-            if let Some(mode) = &output.mode {
-                if mode.custom {
-                    trace!("Setting Mode: custom({})", mode);
-                    configuration_head.set_custom_mode(
-                        mode.width,
-                        mode.height,
-                        mode.refresh_m_hz(),
-                    );
-                } else if let Some(wlr_mode) = wlr_mode {
-                    // Cannot configure a mode that is not alive
-                    if !wlr_mode.is_alive() {
-                        return Err(ShikaneError::Configuration(self.profile.name.clone()));
-                    }
-                    trace!("Setting Mode: {}", mode);
-                    configuration_head.set_mode(wlr_mode);
-                }
-            }
-
-            // Position
-            if let Some(pos) = &output.position {
-                trace!("Setting Position: {}", pos);
-                configuration_head.set_position(pos.x, pos.y);
-            }
-
-            // Scale
-            if let Some(scale) = &output.scale {
-                trace!("Setting Scale: {}", scale);
-                configuration_head.set_scale(*scale);
-            }
-
-            // Transform
-            if let Some(transform) = &output.transform {
-                trace!("Setting Transform: {}", display_transform(transform));
-                configuration_head.set_transform(*transform);
-            }
-
-            // Adaptive Sync
-            if let Some(adaptive_sync) = &output.adaptive_sync {
-                let as_state = match adaptive_sync {
-                    true => AdaptiveSyncState::Enabled,
-                    false => AdaptiveSyncState::Disabled,
-                };
-                if backend.wlr_output_manager_version >= 4 {
-                    trace!("Setting Adaptive Sync: {as_state:?}",);
-                    configuration_head.set_adaptive_sync(as_state);
-                } else {
-                    let msg = format!("Cannot set adaptive_sync to {as_state:?}.");
-                    let msg = format!("{msg} wlr-output-management protocol version >= 4 needed.");
-                    warn!("{msg} Have version {}", backend.wlr_output_manager_version);
-                }
-            }
-        }
-
-        Ok(configuration)
-    }
-}
-
-impl PartialEq for ShikaneProfilePlan {
-    fn eq(&self, other: &Self) -> bool {
-        self.profile == other.profile
-        // && self.config_set == other.config_set
-    }
-}
-
-pub fn create_profile_plans(
-    profiles: &[Profile],
-    backend: &ShikaneBackend,
-) -> VecDeque<ShikaneProfilePlan> {
-    trace!("[Create Profile Plans]");
-    let mut profile_plans = VecDeque::new();
-    for profile in profiles.iter() {
-        if profile.outputs.len() != backend.output_heads.len() {
-            continue;
-        }
-
-        trace!("[Considering Profile] {}", profile.name);
-
-        let o_heads = backend.heads();
-
-        let mut edges = vec![];
-        for output in profile.outputs.iter() {
-            for o_head in o_heads.iter() {
-                if output.matches(o_head) {
-                    edges.push((output, *o_head));
-                }
-            }
-        }
-
-        let matchings = HKMap::new(&profile.outputs, &o_heads).create_hk_matchings(&edges);
-        let config_set = create_config_set(matchings, backend);
-
-        if config_set.len() == profile.outputs.len() {
-            trace!("[Profile added to list] {}", profile.name);
-            profile_plans.push_back(ShikaneProfilePlan {
-                profile: profile.clone(),
-                config_set,
-            });
-        }
-    }
-
-    profile_plans
-}
-
-fn create_config_set(
-    matchings: Vec<(&Output, &OutputHead)>,
-    backend: &ShikaneBackend,
-) -> Vec<OutputMatching> {
-    matchings
-        .iter()
-        .cloned()
-        .filter_map(|(output, o_head)| {
-            let mut mode_trace = String::new();
-            let mut wlr_mode: Option<ZwlrOutputModeV1> = None;
-
-            if let Some(mode) = &output.mode {
-                // When a mode is declared custom,
-                // then there is no need to look for a matching OutputMode
-                if mode.custom {
-                    // do nothing
-                } else if let Some(o_mode) = backend.match_mode(o_head, mode) {
-                    mode_trace = format!(", mode {o_mode}");
-                    wlr_mode = Some(o_mode.wlr_mode.clone());
-                } else {
-                    // If a [`Mode`] was specified but no [`OutputMode`] matched
-                    // then this profile should not be selected
-                    warn!("Output {} does not support mode {mode}", o_head.name);
-                    return None;
-                }
-            }
-
-            trace!(
-                "[Head Matched] match: {}, head.name: {}{mode_trace}",
-                output.r#match,
-                o_head.name,
-            );
-
-            Some(OutputMatching(output.clone(), o_head.clone(), wlr_mode))
-        })
-        .collect()
-}
-
-impl Mode {
-    pub fn matches(&self, o_mode: &OutputMode, delta: &mut i32) -> bool {
-        const MAX_DELTA: i32 = 500; // maximum difference in mHz
-        let refresh: i32 = self.refresh_m_hz();
-        let diff: i32 = refresh.abs_diff(o_mode.refresh) as i32; // difference in mHz
-        trace!(
-            "refresh: {refresh}mHz, monitor.refresh {}mHz, diff: {diff}mHz",
-            o_mode.refresh
-        );
-
-        if diff < MAX_DELTA && diff < *delta {
-            *delta = diff;
-            return true;
-        }
-        false
-    }
-
-    /// Returns the refresh rate in mHz
-    pub fn refresh_m_hz(&self) -> i32 {
-        // convert Hz to mHZ and cut the decimals off
-        //
-        // self.refresh = 59.992_345f32  Hz
-        // (_) * 1000.0 = 59_992.345f32 mHz
-        // (_).trunc()  = 59_992.0f32   mHz
-        // (_) as i32   = 59_992i32     mHz
-        (self.refresh * 1000.0).trunc() as i32
-    }
-}
-
-impl Output {
-    pub fn matches(&self, o_head: &OutputHead) -> bool {
-        // if a pattern is enclosed in '/' it should be interpreted as a regex
-        if self.r#match.starts_with('/') && self.r#match.ends_with('/') {
-            let len = self.r#match.len();
-            let content = &self.r#match[1..len - 1];
-            return regex::regex(content, o_head);
-        }
-        o_head.name == self.r#match || o_head.make == self.r#match || o_head.model == self.r#match
-    }
-}
-
-mod regex {
-    use super::OutputHead;
-
-    pub fn regex(re: &str, o_head: &OutputHead) -> bool {
-        let t = format!(
-            "{}|{}|{}|{}|{}",
-            o_head.name, o_head.make, o_head.model, o_head.serial_number, o_head.description
-        );
-        match regex::Regex::new(re) {
-            Ok(regex) if regex.is_match(&t) => {
-                log::debug!("[Matched] \"{:?}\" {t:?}", regex);
-                return true;
-            }
-            Ok(regex) => {
-                log::debug!("[Does not match] \"{:?}\" {t:?}", regex);
-            }
-            Err(err) => log::warn!("[Error] {}", err),
-        }
-        false
-    }
-}
-
-impl Display for Position {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{}", self.x, self.y)
-    }
-}
-
-impl Display for Mode {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}x{}@{}Hz", self.width, self.height, self.refresh)
-    }
-}
-
-// `Transform` helpers
-#[derive(Deserialize)]
-#[serde(remote = "Transform")]
-#[repr(u32)]
-#[non_exhaustive]
-enum TransformDef {
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+pub enum Transform {
     #[serde(rename = "normal")]
     Normal,
     #[serde(rename = "90")]
@@ -324,34 +78,266 @@ enum TransformDef {
     Flipped270,
 }
 
-mod option_transform {
-    use super::{Transform, TransformDef};
-    use serde::{Deserialize, Deserializer};
-
-    // see https://github.com/serde-rs/serde/issues/1301#issuecomment-394108486
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<Transform>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        #[derive(Deserialize)]
-        struct Helper(#[serde(with = "TransformDef")] Transform);
-
-        let helper = Option::deserialize(deserializer)?;
-        Ok(helper.map(|Helper(external)| external))
+impl Profile {
+    pub fn new(name: String, outputs: Vec<Output>) -> Self {
+        Self {
+            name,
+            outputs,
+            commands: Default::default(),
+            index: Default::default(),
+        }
     }
 }
 
-fn display_transform(t: &Transform) -> String {
-    match t {
-        Transform::Normal => "normal",
-        Transform::_90 => "90",
-        Transform::_180 => "180",
-        Transform::_270 => "270",
-        Transform::Flipped => "flipped",
-        Transform::Flipped90 => "flipped-90",
-        Transform::Flipped180 => "flipped-180",
-        Transform::Flipped270 => "flipped-270",
-        _ => "",
+impl Output {
+    pub fn enabled(search_pattern: Search) -> Self {
+        Self {
+            enable: true,
+            search_pattern,
+            commands: Default::default(),
+            mode: None,
+            position: None,
+            scale: None,
+            transform: None,
+            adaptive_sync: None,
+        }
     }
-    .to_string()
+    pub fn disabled(search_pattern: Search) -> Self {
+        Self {
+            enable: false,
+            search_pattern,
+            commands: Default::default(),
+            mode: None,
+            position: None,
+            scale: None,
+            transform: None,
+            adaptive_sync: None,
+        }
+    }
+    pub fn mode(&mut self, mode: Mode) {
+        self.mode = Some(mode);
+    }
+    pub fn position(&mut self, position: Position) {
+        self.position = Some(position);
+    }
+    pub fn scale(&mut self, scale: f64) {
+        self.scale = Some(scale);
+    }
+    pub fn transform(&mut self, transform: Option<Transform>) {
+        self.transform = transform;
+    }
+    pub fn adaptive_sync(&mut self, adaptive_sync: AdaptiveSyncState) {
+        self.adaptive_sync = Some(adaptive_sync)
+    }
+}
+
+impl Display for Position {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
+}
+
+impl Display for AdaptiveSyncState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AdaptiveSyncState::Disabled => write!(f, "disabled"),
+            AdaptiveSyncState::Enabled => write!(f, "enabled"),
+        }
+    }
+}
+
+impl Display for Transform {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Transform::Normal => "normal",
+            Transform::_90 => "90",
+            Transform::_180 => "180",
+            Transform::_270 => "270",
+            Transform::Flipped => "flipped",
+            Transform::Flipped90 => "flipped-90",
+            Transform::Flipped180 => "flipped-180",
+            Transform::Flipped270 => "flipped-270",
+        };
+        write!(f, "{s}")
+    }
+}
+
+#[derive(Debug, PartialEq, Snafu)]
+#[snafu(context(suffix(Ctx)))]
+pub enum ParsePositionError {
+    #[snafu(display("Missing separator"))]
+    Separator,
+    #[snafu(display("Missing x coordinate"))]
+    MissingX,
+    #[snafu(display("Missing y coordinate"))]
+    MissingY,
+    #[snafu(display("Failed to parse x or y to i32"))]
+    ParseInt { source: ParseIntError },
+}
+
+impl FromStr for Position {
+    type Err = ParsePositionError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let (x, y) = match s.split_once(',') {
+            Some(split) => split,
+            None => return SeparatorCtx {}.fail(),
+        };
+        if x.is_empty() {
+            return MissingXCtx {}.fail();
+        }
+        if y.is_empty() {
+            return MissingYCtx {}.fail();
+        }
+        let x: i32 = x.parse().context(ParseIntCtx)?;
+        let y: i32 = y.parse().context(ParseIntCtx)?;
+        Ok(Self { x, y })
+    }
+}
+
+impl Serialize for Position {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
+impl<'de> Deserialize<'de> for Position {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        struct PositionVisitor;
+
+        #[derive(Serialize, Deserialize)]
+        struct PositionToml {
+            pub x: i32,
+            pub y: i32,
+        }
+
+        impl<'de> Visitor<'de> for PositionVisitor {
+            type Value = Position;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("string or struct")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                FromStr::from_str(value).map_err(serde::de::Error::custom)
+            }
+
+            fn visit_map<M>(self, map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let pos: PositionToml =
+                    Deserialize::deserialize(de::value::MapAccessDeserializer::new(map))?;
+                Ok(Position { x: pos.x, y: pos.y })
+            }
+        }
+
+        deserializer.deserialize_any(PositionVisitor)
+    }
+}
+
+impl Serialize for AdaptiveSyncState {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let b = matches!(self, AdaptiveSyncState::Enabled);
+        serializer.serialize_bool(b)
+    }
+}
+
+impl<'de> Deserialize<'de> for AdaptiveSyncState {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let a_sync: bool = bool::deserialize(deserializer)?;
+        match a_sync {
+            true => Ok(AdaptiveSyncState::Enabled),
+            false => Ok(AdaptiveSyncState::Disabled),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+    use ParsePositionError::*;
+
+    fn pos(x: i32, y: i32) -> Position {
+        Position { x, y }
+    }
+    fn int_error(s: &str) -> ParsePositionError {
+        ParseInt {
+            source: i32::from_str(s).unwrap_err(),
+        }
+    }
+
+    #[derive(Debug, PartialEq, Deserialize, Serialize)]
+    struct SimpleToml {
+        pos: Position,
+    }
+
+    #[rstest]
+    #[case("0,0", pos(0, 0))]
+    #[case("1920,1080", pos(1920, 1080))]
+    #[case("-1920,-1080", pos(-1920, -1080))]
+    #[case("1000000,2", pos(1_000_000, 2))]
+    fn serde_serialize_pos_string_ok(#[case] s: &str, #[case] pos: Position) {
+        assert_eq!(Ok(format!("\"{}\"", s)), toml::to_string(&pos));
+    }
+
+    #[rstest]
+    #[case("0,0", pos(0, 0))]
+    #[case("1920,1080", pos(1920, 1080))]
+    #[case("-1920,-1080", pos(-1920, -1080))]
+    #[case("1000000,2", pos(1_000_000, 2))]
+    fn serde_deserialize_pos_string_ok(#[case] s: &str, #[case] pos: Position) {
+        let toml_str = toml::from_str(&format!("pos = \"{}\"", s));
+        assert_eq!(toml_str, Ok(SimpleToml { pos }));
+    }
+
+    #[rstest]
+    #[case("0,0", pos(0, 0))]
+    #[case("1920,1080", pos(1920, 1080))]
+    #[case("-1920,-1080", pos(-1920, -1080))]
+    #[case("1000000,2", pos(1_000_000, 2))]
+    fn serde_deserialize_pos_table_ok(#[case] s: &str, #[case] pos: Position) {
+        let v: Vec<&str> = s.split(',').collect();
+        let (x, y) = (v[0], v[1]);
+        let toml_str = format!("pos = {{ x = {x}, y = {y} }}");
+        assert_eq!(toml::from_str(&toml_str), Ok(SimpleToml { pos }));
+    }
+
+    #[rstest]
+    #[case("0,0", pos(0, 0))]
+    #[case("1920,1080", pos(1920, 1080))]
+    #[case("-1920,-1080", pos(-1920, -1080))]
+    #[case("1000000,2", pos(1_000_000, 2))]
+    fn parse_position_from_str_ok(#[case] s: &str, #[case] pos: Position) {
+        assert_eq!(Position::from_str(s), Ok(pos))
+    }
+
+    #[rstest]
+    #[case("", Separator)]
+    #[case(",1080", MissingX)]
+    #[case("1920,", MissingY)]
+    #[case("-19201080", Separator)]
+    #[case("50000000000,123", int_error("5000000000"))]
+    #[case("-50000000000,123", int_error("-5000000000"))]
+    #[case("30.0,123", int_error("30.0"))]
+    fn parse_position_from_str_err(#[case] s: &str, #[case] err: ParsePositionError) {
+        assert_eq!(Position::from_str(s), Err(err))
+    }
 }

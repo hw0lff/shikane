@@ -4,25 +4,29 @@ version = "0.2.0"
 edition = "2021"
 authors = ["Hendrik Wolff <hendrik.wolff@agdsn.me>"]
 repository = "https://gitlab.com/w0lff/shikane"
-description = "Dynamic output configuration tool for Wayland compositors"
+description = "dynamic output configuration tool focusing on accuracy and determinism"
 license = "MIT"
 readme = "README.md"
-rust-version = "1.60"
+rust-version = "1.70"
 categories = ["command-line-utilities"]
 keywords = ["wayland", "wlroots", "sway"]
 
 [dependencies]
-calloop = "0.10.4"
+calloop = "0.13.0"
+calloop-wayland-source = "0.3.0"
 clap = { version = "4", features = ["derive"] }
-env_logger = "0.10.0"
+env_logger = "0.10.2"
 hopcroft-karp = "0.2.1"
-log = "0.4.17"
-regex = "1.7.0"
-ron = "0.8.0"
-serde = { version = "1.0.150", features = ["derive"] }
-snafu = "0.7.4"
-thiserror = "1.0.37"
-toml = { version = "0.5.9", features = ["preserve_order"] }
-wayland-client = { version = "=0.30.0", features = ["log", "calloop"] }
-wayland-protocols-wlr = { version = "=0.1.0", features = ["client"] }
-xdg = "2.4.1"
+itertools = "0.12.1"
+log = "0.4.21"
+regex = "1.10.4"
+ron = "0.8.1"
+serde = { version = "1.0.201", features = ["derive"] }
+snafu = "0.7.5"
+toml = { version = "0.5.11", features = ["preserve_order"] }
+wayland-client = { version = "=0.31.2", features = ["log"] }
+wayland-protocols-wlr = { version = "=0.2.0", features = ["client"] }
+xdg = "2.5.2"
+
+[dev-dependencies]
+rstest = "0.19.0"

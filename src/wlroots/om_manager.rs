@@ -1,8 +1,5 @@
-use crate::backend::StateInput;
-
-use super::output_head::OutputHead;
-use super::{Data, ShikaneBackend};
-
+#[allow(unused_imports)]
+use log::{debug, error, info, trace, warn};
 use wayland_client::event_created_child;
 use wayland_client::{Connection, Dispatch, Proxy, QueueHandle};
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_head_v1::ZwlrOutputHeadV1;
@@ -10,39 +7,39 @@ use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::ZwlrOutputManagerV1;
 use wayland_protocols_wlr::output_management::v1::client::zwlr_output_manager_v1::EVT_HEAD_OPCODE;
 
-#[allow(unused_imports)]
-use log::{debug, error, info, trace, warn};
+use crate::wl_backend::WlBackendEvent;
 
-impl Dispatch<ZwlrOutputManagerV1, Data> for ShikaneBackend {
+use super::WlrootsBackend;
+
+impl Dispatch<ZwlrOutputManagerV1, ()> for WlrootsBackend {
     fn event(
-        state: &mut Self,
-        _proxy: &ZwlrOutputManagerV1,
+        backend: &mut Self,
+        _: &ZwlrOutputManagerV1,
         event: <ZwlrOutputManagerV1 as Proxy>::Event,
-        _data: &Data,
-        _conn: &Connection,
-        _qhandle: &QueueHandle<Self>,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
     ) {
         match event {
             ZwlrOutputManagerEvent::Head { head } => {
                 trace!("[Event::Head] id: {:?}", head.id());
-                state.output_heads.insert(head.id(), OutputHead::new(head));
+                backend.wl_store.insert_head(head)
             }
             ZwlrOutputManagerEvent::Done { serial } => {
                 trace!("[Event::Done] serial: {}", serial);
-                state.output_manager_serial = serial;
-                state.send(StateInput::OutputManagerDone);
+                backend.wlr_output_manager_serial = serial;
+                backend.queue_event(WlBackendEvent::AtomicChangeDone);
             }
             ZwlrOutputManagerEvent::Finished => {
                 trace!("[Event::Finished]");
-                state.wlr_output_manager = None;
-                state.output_manager_serial = 0;
-                state.send(StateInput::OutputManagerFinished);
+                backend.wlr_output_manager_serial = 0;
+                backend.queue_event(WlBackendEvent::NeededResourceFinished);
             }
-            _ => warn!("[Event] unknown event received: {:?}", event),
+            unknown => warn!("[Event] Unknown event received: {unknown:?}"),
         }
     }
 
-    event_created_child!(ShikaneBackend, ZwlrOutputManagerV1, [
-        EVT_HEAD_OPCODE=> (ZwlrOutputHeadV1, Data::default()),
+    event_created_child!(WlrootsBackend, ZwlrOutputManagerV1, [
+        EVT_HEAD_OPCODE=> (ZwlrOutputHeadV1, ()),
     ]);
 }
