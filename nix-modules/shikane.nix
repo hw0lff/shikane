@@ -24,11 +24,14 @@ let
     buildPhase = ''
       runHook preBuild
       bash scripts/build-docs.sh man ${shikane.version}
+      bash scripts/build-docs.sh html ${shikane.version}
       runHook postBuild
     '';
     installPhase = ''
       runHook preInstall
       installManPage build/man/*
+      mkdir -p $out/share/doc/shikane/html
+      mv build/html/* $out/share/doc/shikane/html
       runHook postInstall
     '';
   };
