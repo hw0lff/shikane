@@ -32,6 +32,10 @@ let
       installManPage build/man/*
       mkdir -p $out/share/doc/shikane/html
       mv build/html/* $out/share/doc/shikane/html
+      mv README.md $out/share/doc/shikane/
+      mv CHANGELOG.md $out/share/doc/shikane/
+      mkdir -p $out/share/licenses/shikane/
+      mv LICENSE $out/share/licenses/shikane/
       runHook postInstall
     '';
   };
