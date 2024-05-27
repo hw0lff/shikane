@@ -136,9 +136,9 @@ and may look like this:
     at least one matching attribute.
 
     Alternatively, several searches, up to a maximum of 5, may be specified in
-    an array. 
+    an array.
 
-    
+
 **enable** = *true* \| *false*
 
 :   Mandatory.
