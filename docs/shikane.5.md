@@ -98,9 +98,9 @@ and may look like this:
 
 **search** = \"\[*kind*\]*pattern*\"
 
-**search** = \"\[*attrs*\]\[*kind*\]*pattern*\"
+**search** = \"\[\[*attrs*\]*kind*\]*pattern*\"
 
-**search** = \[ \"\[*attrs*\]\[*kind*\]*pattern*\", ... \]
+**search** = \[ \"\[\[*attrs*\]*kind*\]*pattern*\", ... \]
 
 :   Mandatory.
     This field consists of 3 parts. The **attribute list** *attrs* at the
