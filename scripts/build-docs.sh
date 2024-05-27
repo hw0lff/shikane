@@ -11,7 +11,7 @@ common_opts=(
     --standalone
     --from markdown
     --metadata-file "$meta/shikane.metadata.yml"
-    -V "date=$(date +%F)"
+    -M "date=$(date +%F)"
 )
 
 
@@ -24,15 +24,17 @@ buildman() {
         "${common_opts[@]}"
         --to man
         --template "$meta/pandoc.man.template"
-        -V "footer=shikane $version"
+        -M "footer=shikane $version"
     )
 
     mkdir -p "$out"
     for page in "${manpages[@]}"; do
         local page_section="${page/#*./}"
+        local title="${page/%.*/}"
         local page_opts=(
             "${man_opts[@]}"
             -V section="$page_section"
+            -V title="$title"
             "$docs/$page.md"
             -o "$out/$page"
         )
@@ -52,13 +54,17 @@ buildhtml() {
         --to html
         --template "$meta/pandoc.html.template"
         --email-obfuscation=javascript
-        -V "subtitle=shikane $version"
+        -M title=shikane
+        -M "subtitle=shikane $version"
     )
 
     mkdir -p "$out"
     for page in "${manpages[@]}"; do
+        local page_section="${page/#*./}"
+        local title="${page/%.*/}"
         local page_opts=(
             "${html_opts[@]}"
+            -V title="$title($page_section)"
             "$docs/$page.md"
             -o "$out/$page.html"
         )
