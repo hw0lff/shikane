@@ -8,6 +8,10 @@ regarding documented command line interfaces and configuration files.
 
 ## [Unreleased]
 
+### Fixed
+
+- daemon in oneshot mode not shutting down on NoVariantApplied state
+
 ## [1.0.0] - 2024-05-27
 
 ### Added

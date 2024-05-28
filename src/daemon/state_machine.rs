@@ -151,7 +151,10 @@ impl<B: WlBackend> DaemonStateMachine<B> {
 
     pub fn next_variant(&mut self) -> DSMState {
         match self.pm.next_variant() {
-            None => DSMState::NoVariantApplied,
+            None => match self.settings.oneshot {
+                true => self.shutdown(),
+                false => DSMState::NoVariantApplied,
+            },
             Some(mut variant) => {
                 let action = variant.start(self.skip_tests);
                 self.do_action(action, variant)
