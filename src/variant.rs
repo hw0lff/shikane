@@ -45,8 +45,10 @@ impl ValidVariant {
         if skip_tests {
             debug!("skipping test by simulating a successful test");
             self.state = VariantState::Applying;
+            info!("Initial variant state: {} (test skipped)", self.state);
             return DSMAction::ApplyVariant;
         }
+        info!("Initial variant state: {}", self.state);
         self.state.advance(VSMInput::AtomicChangeDone)
     }
 

@@ -84,11 +84,13 @@ impl ProfileManager {
             if len_heads != len_outputs {
                 continue;
             }
-            debug!("len(outputs)={} len(heads)={}", len_outputs, len_heads);
-            debug!("profile.name={}", profile.name);
+            debug!(
+                "len(heads,outputs)=({},{}) profile.name={:?}",
+                len_heads, len_outputs, profile.name
+            );
             if let Some(report) = ProfileMatcher::create_report(profile, wl_heads.clone()) {
-                let (len_variants, pname) = (report.valid_variants.len(), &report.profile.name);
-                info!("len(valid variants, profile {:?})={}", pname, len_variants);
+                let (len, pname) = (report.valid_variants.len(), &report.profile.name);
+                info!("len(valid variants)={} profile.name={:?}", len, pname);
                 self.reports.push_back(report);
             }
         }

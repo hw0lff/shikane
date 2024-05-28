@@ -43,8 +43,10 @@ pub enum DSMAction {
 
 impl<B: WlBackend> DaemonStateMachine<B> {
     pub fn new(backend: B, settings: Settings) -> Self {
+        let state = Default::default();
+        info!("Initial daemon state: {}", state);
         Self {
-            state: Default::default(),
+            state,
             skip_tests: settings.skip_tests,
             pm: ProfileManager::new(settings.profiles.clone()),
             settings,
