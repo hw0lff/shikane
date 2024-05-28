@@ -2,7 +2,7 @@
 use log::{debug, error, info, trace, warn};
 use snafu::{prelude::*, Location};
 
-const SHIKANE_LOG_DEFAULT: &str = "warn";
+const SHIKANE_LOG_DEFAULT: &str = "warn,shikane::variant=info,shikane::daemon::state_machine=info";
 
 pub fn setup_logging() {
     let log_time: Option<env_logger::TimestampPrecision> =

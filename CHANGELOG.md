@@ -13,6 +13,10 @@ regarding documented command line interfaces and configuration files.
 - Set `SHIKANE_LOG_TIME` environment variable to `1` to enable timestamps in logs.
   By default no timestamps are logged.
 
+### Changed
+
+- Change log filter to print state machine changes by default
+
 ### Fixed
 
 - daemon in oneshot mode not shutting down on NoVariantApplied state
