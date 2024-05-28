@@ -8,6 +8,8 @@ regarding documented command line interfaces and configuration files.
 
 ## [Unreleased]
 
+## [1.0.1] - 2024-05-28
+
 ### Added
 
 - Set `SHIKANE_LOG_TIME` environment variable to `1` to enable timestamps in logs.
@@ -122,6 +124,7 @@ sed -r -i 's#match.*=.*"(.*)"#search = "\1"#' path/to/shikane/config.toml
 - MIT License
 
 
+[1.0.1]: https://gitlab.com/w0lff/shikane/-/compare/v1.0.0...v1.0.1
 [1.0.0]: https://gitlab.com/w0lff/shikane/-/compare/v0.2.0...v1.0.0
 [0.2.0]: https://gitlab.com/w0lff/shikane/-/compare/v0.1.2...v0.2.0
 [0.1.2]: https://gitlab.com/w0lff/shikane/-/compare/v0.1.1...v0.1.2
