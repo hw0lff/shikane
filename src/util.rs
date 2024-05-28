@@ -2,13 +2,21 @@
 use log::{debug, error, info, trace, warn};
 use snafu::{prelude::*, Location};
 
+const SHIKANE_LOG_DEFAULT: &str = "warn";
+
 pub fn setup_logging() {
+    let log_time: Option<env_logger::TimestampPrecision> =
+        match std::env::var("SHIKANE_LOG_TIME").is_ok_and(|value| value.trim() == "1") {
+            true => Some(env_logger::TimestampPrecision::Millis),
+            false => None,
+        };
+
     env_logger::Builder::from_env(
         env_logger::Env::new()
-            .filter_or("SHIKANE_LOG", "warn")
+            .filter_or("SHIKANE_LOG", SHIKANE_LOG_DEFAULT)
             .write_style_or("SHIKANE_LOG_STYLE", "auto"),
     )
-    .format_timestamp(Some(env_logger::TimestampPrecision::Millis))
+    .format_timestamp(log_time)
     .init();
 }
 
