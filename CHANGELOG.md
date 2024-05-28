@@ -12,6 +12,7 @@ regarding documented command line interfaces and configuration files.
 
 - Set `SHIKANE_LOG_TIME` environment variable to `1` to enable timestamps in logs.
   By default no timestamps are logged.
+- Document the `SHIKANE_LOG`, `SHIKANE_LOG_STYLES` and `SHIKANE_LOG_TIME` env vars.
 
 ### Changed
 
