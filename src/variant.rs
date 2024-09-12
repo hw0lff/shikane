@@ -4,7 +4,6 @@ use std::fmt::Display;
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::daemon::state_machine::DSMAction;
 use crate::matching::Pairing;
 use crate::profile::Profile;
 
@@ -38,15 +37,25 @@ pub enum VSMInput {
     AtomicChangeDone,
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum VariantAction {
+    Restart,
+    TestVariant,
+    ApplyVariant,
+    TryNextVariant,
+    ExecCmd,
+    Inert,
+}
+
 impl ValidVariant {
     #[must_use]
-    pub fn start(&mut self, skip_tests: bool) -> DSMAction {
+    pub fn start(&mut self, skip_tests: bool) -> VariantAction {
         self.state.reset();
         if skip_tests {
             debug!("skipping test by simulating a successful test");
             self.state = VariantState::Applying;
             info!("Initial variant state: {} (test skipped)", self.state);
-            return DSMAction::ApplyVariant;
+            return VariantAction::ApplyVariant;
         }
         info!("Initial variant state: {}", self.state);
         self.state.advance(VSMInput::AtomicChangeDone)
@@ -71,7 +80,7 @@ impl ValidVariant {
 impl VariantState {
     /// Advance itself by the given input, returning a [`DSMAction`]
     #[must_use]
-    pub fn advance(&mut self, input: VSMInput) -> DSMAction {
+    pub fn advance(&mut self, input: VSMInput) -> VariantAction {
         debug!("Advancing variant state with input: {input}");
         let (new_state, action) = self.next(input);
         *self = new_state;
@@ -81,9 +90,9 @@ impl VariantState {
 
     /// Consumes itself and an input, returns a new instance of itself and a [`DSMAction`].
     #[must_use]
-    pub fn next(self, input: VSMInput) -> (Self, DSMAction) {
-        use DSMAction::*;
+    pub fn next(self, input: VSMInput) -> (Self, VariantAction) {
         use VSMInput::*;
+        use VariantAction::*;
         use VariantState::*;
         match (self, input) {
             (Untested, AtomicChangeDone) => (Testing, TestVariant),
@@ -104,9 +113,9 @@ impl VariantState {
 
     /// Prints a warning and does not advance itself, returns itself and [`DSMAction::Inert`].
     #[must_use]
-    fn warn_invalid(self, input: VSMInput) -> (Self, DSMAction) {
+    fn warn_invalid(self, input: VSMInput) -> (Self, VariantAction) {
         warn!("Received invalid input {input} at state {self}");
-        (self, DSMAction::Inert)
+        (self, VariantAction::Inert)
     }
 
     pub fn reset(&mut self) {

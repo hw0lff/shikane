@@ -7,7 +7,7 @@ use log::{debug, error, info, trace, warn};
 use crate::error;
 use crate::execute::CommandBuilder;
 use crate::settings::Settings;
-use crate::variant::{VSMInput, ValidVariant, VariantState};
+use crate::variant::{VSMInput, ValidVariant, VariantAction, VariantState};
 use crate::wl_backend::{WlBackend, WlBackendEvent};
 
 use super::profile_manager::ProfileManager;
@@ -29,16 +29,6 @@ pub enum DSMState {
     VariantInProgress(ValidVariant),
     VariantApplied(ValidVariant),
     RestartAfterResponse,
-}
-
-#[derive(Clone, Copy, Debug)]
-pub enum DSMAction {
-    Restart,
-    TestVariant,
-    ApplyVariant,
-    TryNextVariant,
-    ExecCmd,
-    Inert,
 }
 
 impl<B: WlBackend> DaemonStateMachine<B> {
@@ -123,23 +113,23 @@ impl<B: WlBackend> DaemonStateMachine<B> {
         self.do_action(action, v)
     }
 
-    pub fn do_action(&mut self, action: DSMAction, variant: ValidVariant) -> DSMState {
+    pub fn do_action(&mut self, action: VariantAction, variant: ValidVariant) -> DSMState {
         match action {
-            DSMAction::Restart => self.restart(),
-            DSMAction::TestVariant => {
+            VariantAction::Restart => self.restart(),
+            VariantAction::TestVariant => {
                 if let Err(err) = self.backend.test(&variant) {
                     warn!("{}", error::report(&err));
                 }
                 DSMState::VariantInProgress(variant)
             }
-            DSMAction::ApplyVariant => {
+            VariantAction::ApplyVariant => {
                 if let Err(err) = self.backend.apply(&variant) {
                     warn!("{}", error::report(&err));
                 }
                 DSMState::VariantInProgress(variant)
             }
-            DSMAction::TryNextVariant => self.next_variant(),
-            DSMAction::ExecCmd => {
+            VariantAction::TryNextVariant => self.next_variant(),
+            VariantAction::ExecCmd => {
                 self.execute_variant_commands(&variant);
                 if self.settings.oneshot {
                     // No return here because the variant is applied.
@@ -147,7 +137,7 @@ impl<B: WlBackend> DaemonStateMachine<B> {
                 }
                 DSMState::VariantApplied(variant)
             }
-            DSMAction::Inert => self.state.clone(),
+            VariantAction::Inert => self.state.clone(),
         }
     }
 
