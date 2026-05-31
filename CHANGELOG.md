@@ -11,6 +11,7 @@ regarding documented command line interfaces and configuration files.
 ### Changed
 
 - settings: Create config directory and empty config.toml if they do not exist
+- logging: Change timestamp precision to nanoseconds
 
 ## [1.0.1] - 2024-05-28
 

@@ -7,7 +7,7 @@ const SHIKANE_LOG_DEFAULT: &str = "warn,shikane::variant=info,shikane::daemon::s
 pub fn setup_logging() {
     let log_time: Option<env_logger::TimestampPrecision> =
         match std::env::var("SHIKANE_LOG_TIME").is_ok_and(|value| value.trim() == "1") {
-            true => Some(env_logger::TimestampPrecision::Millis),
+            true => Some(env_logger::TimestampPrecision::Nanos),
             false => None,
         };
 
