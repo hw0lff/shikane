@@ -1,4 +1,5 @@
 use std::collections::VecDeque;
+use std::io::Read;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -65,13 +66,21 @@ fn parse_settings_toml(
     let config_path = match config_path {
         None => {
             let xdg_dirs = BaseDirectories::with_prefix("shikane").context(BaseDirectoriesCtx)?;
+            std::fs::create_dir_all(xdg_dirs.get_config_home()).context(ConfigPathCtx)?;
             xdg_dirs
                 .place_config_file("config.toml")
                 .context(ConfigPathCtx)?
         }
         Some(path) => path,
     };
-    let s = std::fs::read_to_string(config_path.clone()).context(ReadConfigFileCtx)?;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .read(true)
+        .open(config_path.clone())
+        .context(ReadConfigFileCtx)?;
+    let mut s = String::new();
+    file.read_to_string(&mut s).context(ReadConfigFileCtx)?;
     let mut config: SettingsToml = toml::from_str(&s).context(TomlDeserializeCtx)?;
     config
         .profiles

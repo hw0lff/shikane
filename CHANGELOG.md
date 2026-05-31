@@ -8,6 +8,10 @@ regarding documented command line interfaces and configuration files.
 
 ## [Unreleased]
 
+### Changed
+
+- settings: Create config directory and empty config.toml if they do not exist
+
 ## [1.0.1] - 2024-05-28
 
 ### Added
