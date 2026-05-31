@@ -8,6 +8,8 @@ regarding documented command line interfaces and configuration files.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-31
+
 ### Changed
 
 - settings: Create config directory and empty config.toml if they do not exist
@@ -129,6 +131,7 @@ sed -r -i 's#match.*=.*"(.*)"#search = "\1"#' path/to/shikane/config.toml
 - MIT License
 
 
+[1.1.0]: https://gitlab.com/w0lff/shikane/-/compare/v1.0.1...v1.1.0
 [1.0.1]: https://gitlab.com/w0lff/shikane/-/compare/v1.0.0...v1.0.1
 [1.0.0]: https://gitlab.com/w0lff/shikane/-/compare/v0.2.0...v1.0.0
 [0.2.0]: https://gitlab.com/w0lff/shikane/-/compare/v0.1.2...v0.2.0
