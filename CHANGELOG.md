@@ -8,6 +8,10 @@ regarding documented command line interfaces and configuration files.
 
 ## [Unreleased]
 
+### Fixed
+
+- settings: Read config.toml without write permission
+
 ## [1.1.0] - 2026-05-31
 
 ### Changed

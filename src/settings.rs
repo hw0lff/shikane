@@ -1,5 +1,4 @@
 use std::collections::VecDeque;
-use std::io::Read;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -73,14 +72,14 @@ fn parse_settings_toml(
         }
         Some(path) => path,
     };
-    let mut file = std::fs::OpenOptions::new()
+
+    // create empty file if it doesn't exist, ignore error
+    let _ = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .read(true)
-        .open(config_path.clone())
-        .context(ReadConfigFileCtx)?;
-    let mut s = String::new();
-    file.read_to_string(&mut s).context(ReadConfigFileCtx)?;
+        .open(config_path.clone());
+    // now read from file without write permissions
+    let s = std::fs::read_to_string(config_path.clone()).context(ReadConfigFileCtx)?;
     let mut config: SettingsToml = toml::from_str(&s).context(TomlDeserializeCtx)?;
     config
         .profiles
