@@ -8,6 +8,8 @@ regarding documented command line interfaces and configuration files.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-06-10
+
 ### Fixed
 
 - settings: Read config.toml without write permission
@@ -135,6 +137,7 @@ sed -r -i 's#match.*=.*"(.*)"#search = "\1"#' path/to/shikane/config.toml
 - MIT License
 
 
+[1.1.1]: https://gitlab.com/w0lff/shikane/-/compare/v1.1.0...v1.1.1
 [1.1.0]: https://gitlab.com/w0lff/shikane/-/compare/v1.0.1...v1.1.0
 [1.0.1]: https://gitlab.com/w0lff/shikane/-/compare/v1.0.0...v1.0.1
 [1.0.0]: https://gitlab.com/w0lff/shikane/-/compare/v0.2.0...v1.0.0
